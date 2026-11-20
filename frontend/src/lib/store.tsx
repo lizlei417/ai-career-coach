@@ -1,4 +1,5 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { saveProject, type Project, type SavedProject } from './projects'
 import { ApiError, get, post } from './api'
 import { errorKey, translate, type TKey } from './i18n'
 import type {
@@ -10,7 +11,7 @@ import type {
 
 export interface Inputs {
   resumeText: string
-  resumeFile: { name: string; pages: number } | null
+  resumeFile: { name: string; pages: number; blob?: Blob } | null
   jobTitle: string
   jdText: string
   jdUrl: string
@@ -30,7 +31,8 @@ export interface InterviewState {
   fingerprint: string
 }
 
-interface Persisted {
+export interface Persisted {
+  drafts: Record<string,string>
   lang: Lang
   entered: boolean
   feature: Feature
@@ -49,7 +51,8 @@ const storage = import.meta.env.VITE_PAGES_DEMO === '1' ? sessionStorage : local
 const emptyInputs: Inputs = { resumeText: '', resumeFile: null, jobTitle: '', jdText: '', jdUrl: '', jdFromUrl: false }
 const emptyInterview: InterviewState = { status: 'idle', turns: [], summary: null, fingerprint: '' }
 
-const initial: Persisted = {
+export const initial: Persisted = {
+  drafts: {},
   lang: 'zh-CN',
   entered: false,
   feature: 'overview',
@@ -63,7 +66,7 @@ const initial: Persisted = {
   interview: emptyInterview,
 }
 
-function load(): Persisted {
+export function loadLegacy(): Persisted {
   try {
     const raw = storage.getItem(STORAGE)
     if (!raw) return initial
@@ -93,6 +96,13 @@ export type BusyKey = 'prepare' | 'pdf' | 'url' | 'resume' | 'match' | 'question
 export type ErrKey = BusyKey
 
 interface Ctx {
+  project: Project
+  projects: Project[]
+  changeProject: (value: string, create?: boolean) => Promise<void>
+  switching: boolean
+  saving: boolean
+  saveFailed: boolean
+  setDraft: (id: string, value: string) => void
   s: Persisted
   t: (k: TKey, v?: Record<string, string | number>) => string
   busy: Partial<Record<BusyKey, boolean>>
@@ -133,8 +143,14 @@ interface Ctx {
 
 const AppCtx = createContext<Ctx | null>(null)
 
-export function AppProvider({ children }: { children: ReactNode }) {
-  const [s, setS] = useState<Persisted>(load)
+type ProjectAction = (value: string, lang: Lang) => Promise<void>
+export function AppProvider({ children, project, projects, select, create }: {
+  children: ReactNode; project: SavedProject; projects: Project[]; select: ProjectAction; create: ProjectAction
+}) {
+  const [s, setS] = useState<Persisted>(project.state)
+  const [switching, setSwitching] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saveFailed, setSaveFailed] = useState(false)
   const [busy, setBusy] = useState<Partial<Record<BusyKey, boolean>>>({})
   const [errors, setErrors] = useState<Partial<Record<ErrKey, string>>>({})
   const [llm, setLlm] = useState<LLMPublic | null>(null)
@@ -142,16 +158,39 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const sRef = useRef(s)
   sRef.current = s
 
-  useEffect(() => {
-    const id = setTimeout(() => {
-      try {
-        storage.setItem(STORAGE, JSON.stringify(s))
-      } catch {
-        /* quota */
-      }
-    }, 250)
-    return () => clearTimeout(id)
-  }, [s])
+  const revision = useRef(project.revision)
+  const pendingSave = useRef(Promise.resolve())
+  useLayoutEffect(() => {
+    let current = true
+    setSaving(true)
+    const guard = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = '' }
+    window.addEventListener('beforeunload', guard)
+    const write = pendingSave.current.catch(() => {}).then(async () => {
+      revision.current = await saveProject({ id: project.id, name: project.name, revision: revision.current, state: s })
+    })
+    pendingSave.current = write
+    function finish(failed: boolean) {
+      if (!current) return
+      setSaveFailed(failed)
+      setSaving(false)
+      if (!failed) window.removeEventListener('beforeunload', guard)
+    }
+    write.then(() => finish(false), () => finish(true))
+    return () => { current = false; window.removeEventListener('beforeunload', guard) }
+  }, [project.id, project.name, s])
+
+  async function changeProject(value: string, isNew = false) {
+    if (switching || Object.values(busy).some(Boolean)) return
+    setSwitching(true)
+    try {
+      await pendingSave.current
+      await (isNew ? create : select)(value, s.lang)
+    } catch {
+      setSaveFailed(true)
+    } finally {
+      setSwitching(false)
+    }
+  }
 
   useEffect(() => {
     document.documentElement.lang = s.lang
@@ -360,12 +399,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [patch])
 
   const clearAll = useCallback(() => {
-    storage.removeItem(STORAGE)
     setS({ ...initial, lang: sRef.current.lang, entered: true })
     setErrors({})
   }, [])
 
   const value: Ctx = {
+    project, projects, switching, changeProject, saving, saveFailed,
+    setDraft: (id, value) => patch(c => ({ drafts: { ...c.drafts, [id]: value } })),
     s, t, busy, errors, llm, kb, inputsDirty, ready, isStale, supKey,
     setLang: (l) => patch({ lang: l }),
     enter: () => patch({ entered: true }),

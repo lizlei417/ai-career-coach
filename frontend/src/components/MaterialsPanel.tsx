@@ -1,6 +1,7 @@
 import { Check, ChevronsLeft, ChevronsRight, FileUp, Link2, Loader2, Sparkles, X } from 'lucide-react'
 import { useRef, useState, type DragEvent } from 'react'
-import { post, upload } from '../lib/api'
+import PdfPreview from './PdfPreview'
+import { ApiError, post, upload } from '../lib/api'
 import { SAMPLE_JD, SAMPLE_RESUME } from '../lib/sample'
 import { useApp } from '../lib/store'
 import { Button, ErrorNote } from './ui'
@@ -13,6 +14,7 @@ export default function MaterialsPanel() {
   const { t, s, setInputs, setMaterialsOpen, prepare, run, busy, errors, clearError, setError, inputsDirty, ready, removeSupplement } = useApp()
   const { inputs } = s
   const fileRef = useRef<HTMLInputElement>(null)
+  const [preview, setPreview] = useState(false)
   const [drag, setDrag] = useState(false)
   const [showUrl, setShowUrl] = useState(false)
 
@@ -42,8 +44,22 @@ export default function MaterialsPanel() {
       setError('pdf', 'FILE_TYPE')
       return
     }
-    const out = await run('pdf', () => upload<{ text: string; pages: number }>('/api/extract/pdf', f))
-    if (out) setInputs({ resumeText: out.text, resumeFile: { name: f.name, pages: out.pages } })
+    if (busy.pdf) return
+    const out = await run('pdf', async () => {
+      if (f.size > 8 * 1024 * 1024) throw new ApiError('FILE_TOO_LARGE')
+      if (!((await f.slice(0, 5).text()) === '%PDF-')) throw new ApiError('PDF_UNREADABLE')
+      if (import.meta.env.VITE_PAGES_DEMO === '1') return { text: '', pages: 0 }
+      try {
+        return await upload<{ text: string; pages: number }>('/api/extract/pdf', f)
+      } catch (e) {
+        if (e instanceof ApiError && e.code === 'PDF_NO_TEXT') {
+          setError('pdf', e.code)
+          return { text: '', pages: 0 }
+        }
+        throw e
+      }
+    })
+    if (out) setInputs({ resumeText: out.text, resumeFile: { name: f.name, pages: out.pages, blob: f.slice(0, f.size, "application/pdf") } })
   }
   const onDrop = (e: DragEvent) => {
     e.preventDefault()
@@ -82,13 +98,18 @@ export default function MaterialsPanel() {
         <div>
           <div className="mb-2 flex items-center justify-between">
             <label htmlFor="resume" className="field-label">{t('mat.resume')}</label>
-            {inputs.resumeText && (
+            <div className="flex items-center gap-3 text-xs text-accent-600">
+              <button disabled={busy.pdf} onClick={() => fileRef.current?.click()}>{t('mat.uploadPdf')}</button>
+              <button disabled={!inputs.resumeFile?.blob} className="disabled:opacity-40" onClick={() => setPreview(true)}>{t('project.preview')}</button>
+            </div>
+            {(inputs.resumeText || inputs.resumeFile) && (
               <button className="text-[11.5px] text-ink-500 hover:text-ink-900" onClick={() => setInputs({ resumeText: '', resumeFile: null })}>
                 {t('mat.clear')}
               </button>
             )}
           </div>
-          {!inputs.resumeText && (
+              <input ref={fileRef} type="file" accept="application/pdf,.pdf" hidden onChange={(e) => { onFile(e.target.files?.[0]); e.target.value = '' }} />
+          {!inputs.resumeText && !inputs.resumeFile?.blob && (
             <div
               onDragOver={(e) => { e.preventDefault(); setDrag(true) }}
               onDragLeave={() => setDrag(false)}
@@ -109,9 +130,10 @@ export default function MaterialsPanel() {
                   </>
                 )}
               </div>
-              <input ref={fileRef} type="file" accept="application/pdf,.pdf" hidden onChange={(e) => { onFile(e.target.files?.[0]); e.target.value = '' }} />
+
             </div>
           )}
+          {preview && inputs.resumeFile?.blob && <PdfPreview blob={inputs.resumeFile.blob} name={inputs.resumeFile.name} close={() => setPreview(false)} />}
           <ErrorNote code={errors.pdf} compact onClose={() => clearError('pdf')} />
           <textarea
             id="resume"
@@ -121,7 +143,7 @@ export default function MaterialsPanel() {
             className={`field mt-2 resize-none font-[450] ${inputs.resumeText ? 'h-[200px]' : 'h-[96px]'}`}
           />
           <div className="mt-1 flex items-center justify-between text-[11px] text-ink-500">
-            <span className="truncate">{inputs.resumeFile && inputs.resumeText ? t('mat.fromFile', { name: inputs.resumeFile.name, pages: inputs.resumeFile.pages }) : ''}</span>
+            <span className="truncate">{inputs.resumeFile?.pages ? t('mat.fromFile', { name: inputs.resumeFile.name, pages: inputs.resumeFile.pages }) : inputs.resumeFile?.name}</span>
             <span className="shrink-0 tabular-nums">{inputs.resumeText ? t('mat.chars', { n: count(inputs.resumeText) }) : ''}</span>
           </div>
         </div>

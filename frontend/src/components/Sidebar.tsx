@@ -1,3 +1,4 @@
+import ProjectList from './ProjectList'
 import { BriefcaseBusiness, FileText, Home, LayoutGrid, MessagesSquare, Settings2 } from 'lucide-react'
 import { useApp } from '../lib/store'
 import type { Feature } from '../lib/types'
@@ -16,12 +17,13 @@ export default function Sidebar() {
     },
   ]
   return (
-    <aside className="flex h-full w-[224px] shrink-0 flex-col bg-ink-950 text-white">
+    <aside className="flex h-full overflow-y-auto w-[224px] shrink-0 flex-col bg-ink-950 text-white">
       <div className="flex h-16 items-center gap-2.5 px-5">
         <Logo dark size={26} />
         <span className="text-[14.5px] font-semibold tracking-tight">AI Career Coach</span>
       </div>
 
+      <ProjectList />
       <nav className="mt-3 flex-1 space-y-0.5 px-3">
         {items.map((it) => {
           const on = s.feature === it.key

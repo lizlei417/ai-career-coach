@@ -132,9 +132,11 @@ export default function InterviewView() {
 function TurnStage({ turn, index, isCurrent, disabled }: { turn: Turn; index: number; isCurrent: boolean; disabled: boolean }) {
   const { t, busy, errors, clearError, submitAnswer, askQuestion, takeFollowUp, endInterview } = useApp()
   const last = turn.attempts[turn.attempts.length - 1]
-  const [answering, setAnswering] = useState(!last)
-  const [draft, setDraft] = useState('')
+  const { s, setDraft: saveDraft } = useApp()
+  const draft = s.drafts[turn.id] || ''
+  const setDraft = (value: string) => saveDraft(turn.id, value)
   const ref = useRef<HTMLTextAreaElement>(null)
+  const [answering, setAnswering] = useState(!last || !!draft)
   const q = turn.question
 
   useEffect(() => {

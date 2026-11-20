@@ -81,3 +81,8 @@
   .workspace > main > div { padding:20px 16px; }
   .workspace main .grid { grid-template-columns:minmax(0,1fr); }
 }
+.project-dialog { width: min(24rem, 92vw); }
+dialog::backdrop { background: rgb(12 22 36 / .6); }
+.pdf-reader[open] { display:flex; flex-direction:column; width:96vw; height:94dvh; max-width:98vw; max-height:98dvh; padding:0; border:0; border-radius:8px; }
+.pdf-reader iframe { flex:1; width:100%; min-height:0; border:0; background:#505359; }
+@media(max-width:800px) { .workspace .project-list { margin: 0 12px 8px; } }

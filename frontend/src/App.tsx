@@ -17,6 +17,7 @@ export default function App() {
 
 function Workspace() {
   const { s } = useApp()
+  const { t, project, saving, saveFailed, switching } = useApp()
   const main = useRef<HTMLDivElement>(null)
   useEffect(() => {
     main.current?.scrollTo({ top: 0 })
@@ -24,12 +25,19 @@ function Workspace() {
   const showMaterials = s.feature !== 'settings'
   const View = { overview: Overview, resume: ResumeView, match: MatchView, interview: InterviewView, settings: SettingsView }[s.feature]
   return (
-    <div className="workspace flex h-screen w-full overflow-hidden bg-paper animate-fade">
+    <div ref={el => { if (el) el.inert = switching }} className="workspace flex h-screen w-full overflow-hidden bg-paper animate-fade">
       <Sidebar />
       {showMaterials && <MaterialsPanel />}
       <main ref={main} className="scroll-thin min-w-0 flex-1 overflow-y-auto">
         <div className={`mx-auto h-full px-8 py-7 xl:px-10 ${s.feature === 'interview' ? 'max-w-[1180px]' : 'max-w-[1240px]'}`}>
           {import.meta.env.VITE_PAGES_DEMO === '1' && <p className="mb-4 text-xs text-accent-600">{s.lang === 'en' ? 'Demo Mode · Load the fictional sample for scripted results in English.' : s.lang === 'zh-TW' ? '演示模式 · 填入虛構範例可體驗英文預設結果。' : '演示模式 · 填入虚构示例可体验英文预设结果。'}</p>}
+          <header className="mb-4 flex items-baseline justify-between gap-3 border-b border-paper-200 pb-3">
+            <strong className="min-w-0 break-words">{project.name}</strong>
+            <span className="shrink-0 text-xs text-ink-500" data-saved={!saving && !saveFailed}>
+              {!saveFailed && (saving ? t('project.saving') : t('project.saved'))}
+            </span>
+          </header>
+          {saveFailed && <p role="alert">{s.lang === 'en' ? 'Changes could not be saved. Check storage or reload if another tab edited this project.' : '项目保存失败。请检查存储空间；若其他标签页已修改此项目，请先复制草稿再刷新。'}</p>}
           <View />
         </div>
       </main>
