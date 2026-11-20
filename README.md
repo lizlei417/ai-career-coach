@@ -2,7 +2,7 @@
 
 [Open the public demo](https://lizlei417.github.io/ai-career-coach-codex/)
 
-This is the independent Codex edition, built from the original React / TypeScript frontend and FastAPI service. The Pages workflow publishes only the Vite static build. Navigation, editing, language switching and review controls run in the browser. Coaching outputs use a labelled fictional case. PDF extraction, URL import, model credentials and retrieval require the local service. Use fictional materials when exploring the demo.
+This is the independent Codex edition, built from the original React / TypeScript frontend and FastAPI service. GitHub Pages publishes only the Vite static build. Navigation, editing, language switching and review controls run in the browser. Coaching outputs use a labelled fictional case. PDF extraction, URL import, model credentials and retrieval require the local service. Use fictional materials when exploring the demo.
 
 ## Run locally
 
@@ -18,4 +18,11 @@ For an offline preview of the Pages build, run `npm ci && VITE_PAGES_DEMO=1 npm 
 
 ## GitHub Pages publishing
 
-Pages serves the checked-in  build from . GitHub automatically deploys updates to this directory. To rebuild it, run  inside  and replace  with the contents of , retaining . An optional build-and-deploy workflow is provided in  for accounts with workflow write permission.
+Pages serves the committed `docs/` directory on `main`. To update the demo, run the following in `frontend/`:
+
+```sh
+npm ci
+VITE_PAGES_DEMO=1 npm run build -- --base=/ai-career-coach-codex/
+```
+
+Replace the contents of `docs/` with the new build from `frontend/dist/`, keep `docs/.nojekyll`, and push the changes. GitHub runs its Pages build and deployment workflow automatically. An optional source-build workflow is included in `deployment/pages-workflow.yml` for use with Actions-based Pages publishing.
