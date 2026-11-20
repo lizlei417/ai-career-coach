@@ -117,7 +117,10 @@ function App() {
     try {
       setErr(null);
       const boot = await api<Bootstrap>("bootstrap");
-      setStrings({ ...boot.strings, ...ui });
+      setStrings({ ...boot.strings, ...ui, ...(demo ? {
+        privacyShort: ["Scripted demo · materials stay in this tab.", "预设演示 · 材料仅保存在当前标签页。", "預設演示 · 材料僅保存在目前分頁。"],
+        sessionPrivacy: ["Submitted sample materials and results stay in this browser tab.", "已提交的示例材料与结果仅保存在当前浏览器标签页。", "已提交的範例材料與結果僅保存在目前瀏覽器分頁。"],
+      } : {}) });
       if (sessionStorage.getItem("career-project")) {
         try {
           restore(await api<Project>("project"));
