@@ -56,8 +56,8 @@ function ModelSection({ llm, onChange }: { llm: LLMPublic | null; onChange: () =
     finally { await onChange(); setTesting(false) }
   }
   return <Section title={t('st.model')} lead="DeepSeek · DEEPSEEK_API_KEY">
-    <p>{llm?.model} · {llm?.configured ? t(llm.connection === 'verified' ? 'ds.verified' : llm.connection === 'failed' ? (llm.last_error === 'LLM_AUTH' ? 'ds.authFailed' : 'ds.unavailable') : 'ds.pending') : t('st.status.off')}</p>
-    <Button disabled={!llm?.configured || testing} onClick={test}>{t('st.test')}</Button>
+    <p>{llm?.model} · {llm === null ? t('side.statusUnknown') : llm.configured ? t(llm.connection === 'verified' ? 'ds.verified' : llm.connection === 'failed' ? (llm.last_error === 'LLM_AUTH' ? 'ds.authFailed' : 'ds.unavailable') : 'ds.pending') : t('st.status.off')}</p>
+    <Button disabled={llm?.configured === false || testing} onClick={test}>{t('st.test')}</Button>
     <ErrorNote code={err} onClose={() => setErr(undefined)} />
   </Section>
 }
@@ -76,7 +76,7 @@ function KBSection({ kb }: { kb: KBStatus | null }) {
     finally { setBusy(false) }
   }
   return <Section title={t('st.kb')} lead={t('st.kbFixed')}>
-    <p className="mb-3 text-sm">{kb?.version} · {kb?.connected ? t('side.connected', {n: kb.files.length}) : t(kb?.error ? 'side.kbError' : 'side.notConnected')}</p>
+    <p className="mb-3 text-sm">{kb?.version} · {kb === null ? t('side.statusUnknown') : kb.connected ? t('side.connected', {n: kb.files.length}) : t(kb?.error ? 'side.kbError' : 'side.notConnected')}</p>
     <ul className="mb-4 divide-y divide-paper-200 rounded-md border border-paper-200 bg-white">{kb?.files.map(f =>
       <li key={f.name} className="px-3 py-2 text-[13px]">{f.name} · {t('st.kbChunks', {n:f.chunks})}</li>)}</ul>
     <div className="flex gap-2">

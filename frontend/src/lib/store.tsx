@@ -283,7 +283,7 @@ export function AppProvider({ children, project, projects, select, create, renam
 
   const run = useCallback(async <T,>(k: BusyKey, fn: () => Promise<T>) => {
     if (running.current.has(k)) return undefined
-    if (!llm?.configured && k !== 'pdf' && k !== 'url') {
+    if (llm?.configured === false && k !== 'pdf' && k !== 'url') {
       setErrors(e => ({ ...e, [k]: 'LLM_NOT_CONFIGURED' }))
       return undefined
     }

@@ -14,3 +14,5 @@
 - 证据：tests/evidence/profile-recovery.json、profile-recovery-modal.png、profile-recovery.png、profile-recovery-run.log、profile-full-regression.log、profile-build.log。
 
 发布与线上验证另行追加。
+
+线上首轮还复现了第二个前端问题：健康接口暂时不可读时 llm=null，旧 `!llm?.configured` 条件将其误报为“没配置模型”，没有发出模型请求（专用账户额度仍为 7）。修复为仅在后端明确报告 configured=false 时做本地拦截；状态未知允许后端判定，状态栏显示“状态暂未获取”。未放宽服务端认证、配置检查或额度限制。定向 E2E 现在故意让所有 /api/health 返回 503，完整验证取消、确认继续、去重、保存与刷新，依旧通过。

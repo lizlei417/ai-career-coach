@@ -2,6 +2,7 @@ import type { Lang } from './types'
 
 const zhCN = {
   'common.req.unspecified': '未明确优先级',
+  'side.statusUnknown': '状态暂未获取',
   'mat.updated': '材料解析已更新。下次分析会刷新材料；原有存档仍保留。',
   'err.LANGUAGE_REQUIRED': '请先明确选择输出语言。',
   'ro.scopeReview': '原文的协助或参与范围可能变更',
@@ -364,6 +365,7 @@ type Dict = Record<keyof typeof zhCN, string>
 
 const zhTW: Dict = {
   'common.req.unspecified': '未明確優先級',
+  'side.statusUnknown': '狀態暫未取得',
   'mat.updated': '材料解析已更新。下次分析會刷新材料；原有存檔仍保留。',
   'err.LANGUAGE_REQUIRED': '請先明確選擇輸出語言。',
   'ro.scopeReview': '原文的協助或參與範圍可能變更',
@@ -714,6 +716,7 @@ const zhTW: Dict = {
 
 const en: Dict = {
   'common.req.unspecified': 'Priority unspecified',
+  'side.statusUnknown': 'Status unavailable',
   'mat.updated': 'Material parsing was updated. The next analysis refreshes materials; saved results are retained.',
   'err.LANGUAGE_REQUIRED': 'Please explicitly select an output language first.',
   'ro.scopeReview': 'Support or participation scope may have changed',

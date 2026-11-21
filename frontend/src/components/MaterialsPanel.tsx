@@ -284,7 +284,7 @@ export default function MaterialsPanel() {
           className="w-full"
           loading={busy.prepare}
           onClick={prepare}
-          disabled={!llm?.configured || (ready && !inputsDirty && !materialsOutdated)}
+          disabled={llm?.configured === false || (ready && !inputsDirty && !materialsOutdated)}
         >
           {busy.prepare ? t('mat.analyzing') : ready ? t('mat.reanalyze') : t('mat.analyze')}
         </Button>

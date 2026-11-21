@@ -6,7 +6,7 @@ import json
 from playwright.sync_api import sync_playwright,expect
 from e2e_audit import BASE,OUT,RESUME_PAGES,JD
 with sync_playwright() as pw:
- b=pw.chromium.launch(channel='chrome');ctx=b.new_context(viewport={'width':1500,'height':900});p=ctx.new_page();p.set_default_timeout(15000);calls=[]
+ b=pw.chromium.launch(channel='chrome');ctx=b.new_context(viewport={'width':1500,'height':900});p=ctx.new_page();ctx.route('**/api/health',lambda r:r.fulfill(status=503,json={'detail':'Synthetic health unavailable'}));p.set_default_timeout(15000);calls=[]
  p.on('request',lambda r:calls.append(r.url) if r.url.endswith(('/materials/prepare','/resume/optimize')) else None)
  def nav(name):p.get_by_role('button',name=name,exact=True).first.click()
  def api(path,method='GET',data=None):
@@ -39,7 +39,7 @@ with sync_playwright() as pw:
   nav('Legacy Profile');expect(p.locator('#user-stage')).to_have_value('current_student');expect(p.locator('#job-goal')).to_have_value('internship')
   nav('求职选项');expect(p.locator('#analysis-language')).to_have_value('zh-CN');nav('取消');save()
   p.screenshot(path=str(OUT/'profile-recovery.png'),full_page=True)
-  (OUT/'profile-recovery.json').write_text(json.dumps({'mode':'MOCK model/Auth/Storage, real browser/backend/DB','legacy_missing_fields':True,'scrolled_sidebar_modal':True,'cancel_no_calls_no_data_loss':True,'confirm_auto_continues':True,'double_click_one_model_call':True,'refresh_persists':True,'project_isolation':True,'escape_closes':True},indent=2))
+  (OUT/'profile-recovery.json').write_text(json.dumps({'mode':'MOCK model/Auth/Storage, real browser/backend/DB','health_failure_does_not_block':True,'legacy_missing_fields':True,'scrolled_sidebar_modal':True,'cancel_no_calls_no_data_loss':True,'confirm_auto_continues':True,'double_click_one_model_call':True,'refresh_persists':True,'project_isolation':True,'escape_closes':True},indent=2))
   print('PASS historical profile gate: visible modal, cancel, automatic continuation, no duplicate calls, persistence and isolation')
  finally:
   if __import__('sys').exc_info()[0]:(OUT/'profile-recovery-failure.txt').write_text(p.locator('body').inner_text())

@@ -64,12 +64,12 @@ export default function Sidebar() {
             <span className="text-white/40">{t('side.model')}</span>
             <span className={`flex min-w-0 items-center gap-1.5 ${llm?.configured ? 'text-white/80' : 'text-warn-200'}`}>
               <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${llm?.connection === 'verified' ? 'bg-[#7FB89A]' : 'bg-warn-500'}`} />
-              <span className="truncate">{llm?.configured ? (llm.connection ? t(llm.connection === 'verified' ? 'ds.verified' : llm.connection === 'failed' ? (llm.last_error === 'LLM_AUTH' ? 'ds.authFailed' : 'ds.unavailable') : 'ds.pending') : llm.model) : t('side.notConfigured')}</span>
+              <span className="truncate">{llm === null ? t('side.statusUnknown') : llm.configured ? (llm.connection ? t(llm.connection === 'verified' ? 'ds.verified' : llm.connection === 'failed' ? (llm.last_error === 'LLM_AUTH' ? 'ds.authFailed' : 'ds.unavailable') : 'ds.pending') : llm.model) : t('side.notConfigured')}</span>
             </span>
           </div>
           <div className="flex items-center justify-between gap-2">
             <span className="text-white/40">{t('side.kb')}</span>
-            <span className="truncate text-white/60">{kb?.connected ? t('side.connected', { n: kb.files.length }) : t(kb?.error ? 'side.kbError' : 'side.notConnected')}</span>
+            <span className="truncate text-white/60">{kb === null ? t('side.statusUnknown') : kb.connected ? t('side.connected', { n: kb.files.length }) : t(kb?.error ? 'side.kbError' : 'side.notConnected')}</span>
           </div>
         </button>
         <div className="flex items-center justify-between">
