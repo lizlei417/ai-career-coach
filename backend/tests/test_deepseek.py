@@ -28,6 +28,7 @@ class DeepSeekRoutes(unittest.TestCase):
         self.status = 200
         self.calls = 0
         original = httpx.AsyncClient
+        self.original_client = original
         def transport(req):
             self.calls += 1
             body = json.loads(req.content)
@@ -61,3 +62,14 @@ class DeepSeekRoutes(unittest.TestCase):
             self.assertEqual(self.client.post("/api/settings/test").json()["error"]["code"],code)
         self.assertEqual(self.calls,3)
         self.assertEqual(self.client.get("/api/health").json()["llm"]["connection"],"failed")
+
+    def test_unsent_transport_and_preflight_accounting(self):
+        for kind, refunded, status in [(httpx.ConnectError,True,502),(httpx.ReadTimeout,False,504)]:
+            cloud.cancel_unsent.reset_mock()
+            def fail(request): raise kind("offline fixture",request=request)
+            with patch.object(httpx,"AsyncClient",lambda **kw:self.original_client(transport=httpx.MockTransport(fail),**kw)):
+                self.assertEqual(self.client.post("/api/settings/test").status_code,status)
+            self.assertEqual(cloud.cancel_unsent.called,refunded)
+        cloud.reserve_call.reset_mock()
+        self.assertEqual(self.client.post("/api/resume/optimize",json={}).status_code,422)
+        cloud.reserve_call.assert_not_called()

@@ -12,6 +12,7 @@ export interface SavedProject extends Project {
 
 let clearing = false;
 const writes = new Set<Promise<number>>();
+export async function waitProjectWrites() { await Promise.all(Array.from(writes)) }
 export function saveProject(project: SavedProject): Promise<number> {
   if (clearing) return Promise.reject(Error("Deleting workspace"));
   const write = cloudJson("/api/workspaces/" + encodeURIComponent(project.id), {

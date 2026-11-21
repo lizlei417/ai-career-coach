@@ -24,6 +24,7 @@ def codex(name):
 
 app.mount("/v1", codex("v1"))
 app.mount("/v2", codex("v2"))
+app.mount("/v3", codex("v3"))
 sys.path.insert(0, str(root / "claude"))
 from server import app as claude_app
 
@@ -32,9 +33,9 @@ app.mount("/claude", claude_app)
 
 @app.get("/healthz")
 def health():
-    return {"ok": True, "applications": ["v1", "v2", "claude"]}
+    return {"ok": True, "applications": ["v1", "v2", "v3", "claude"]}
 
 
 @app.get("/")
 def home():
-    return RedirectResponse("/v2/")
+    return RedirectResponse("/v3/")

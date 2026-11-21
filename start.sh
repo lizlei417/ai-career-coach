@@ -3,7 +3,7 @@
 set -eu
 cd "$(dirname "$0")"
 if [[ ! -f frontend/dist/index.html ]]; then
-  ( cd frontend && npm ci && npm run build )
+  ( cd frontend && npm ci && npm run build -- --base=/v3/ )
 fi
 cd backend
 if [[ ! -x .venv/bin/python ]]; then
@@ -11,4 +11,4 @@ if [[ ! -x .venv/bin/python ]]; then
   "${PYTHON:-python3}" -m venv .venv
 fi
 .venv/bin/python -m pip install --disable-pip-version-check -q -r requirements.txt
-exec .venv/bin/python -m uvicorn app.main:app --host "${HOST:-127.0.0.1}" --port "${PORT:-8112}"
+exec .venv/bin/python -m uvicorn dev_app:app --host "${HOST:-127.0.0.1}" --port "${PORT:-8113}"

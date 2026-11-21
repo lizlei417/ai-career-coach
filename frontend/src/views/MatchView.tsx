@@ -36,7 +36,7 @@ export default function MatchView() {
         title={t('jm.title')}
         meta={s.materials?.job_title}
         actions={r ? (
-          <Button variant="secondary" size="sm" loading={busy.match} disabled={stale} onClick={generateMatch} icon={<RefreshCw className="h-3.5 w-3.5" />}>
+          <Button variant="secondary" size="sm" loading={busy.match} onClick={generateMatch} icon={<RefreshCw className="h-3.5 w-3.5" />}>
             {t('common.regenerate')}
           </Button>
         ) : null}

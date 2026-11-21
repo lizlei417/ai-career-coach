@@ -90,7 +90,7 @@ const zhCN = {
   'common.none': '无',
   'common.langMismatch': '此结果以{lang}生成',
   'common.regenInLang': '以当前语言重新生成',
-  'common.staleResult': '材料已变更，此结果基于旧版本',
+  'common.staleResult': '简历、JD 或岗位名称已变更，此结果基于旧材料。请点击重新生成以更新分析并恢复审核；取消编辑和撤销决定仍可使用。',
   'common.supplementChanged': '补充材料已更新，重新生成后会纳入新证据',
   'common.needMaterials': '先在左侧提供简历与岗位描述，并点击「开始分析」。',
   'common.openMaterials': '打开材料区',
@@ -285,6 +285,8 @@ const zhCN = {
   'st.language': '界面语言',
 
   // errors
+  'err.RESUME_ASSEMBLY': '无法准确定位修改对应的原文。请重新分析后再导出，原始简历未修改。',
+  'err.RESUME_REVIEW': '无法准确定位修改对应的原文。请重新分析后再导出，原始简历未修改。',
   'err.RESUME_EMPTY': '请先上传或粘贴简历。',
   'err.RESUME_TOO_SHORT': '简历内容太少，请补充完整的经历描述。',
   'err.JD_EMPTY': '请粘贴岗位描述，或从链接导入。',
@@ -411,7 +413,7 @@ const zhTW: Dict = {
   'common.none': '無',
   'common.langMismatch': '此結果以{lang}生成',
   'common.regenInLang': '以目前語言重新生成',
-  'common.staleResult': '材料已變更，此結果基於舊版本',
+  'common.staleResult': '履歷、JD 或職位名稱已變更，此結果基於舊材料。請點擊重新生成以更新分析並恢復審核；取消編輯與撤銷決定仍可使用。',
   'common.supplementChanged': '補充材料已更新，重新生成後會納入新證據',
   'common.needMaterials': '請先在左側提供履歷與職位描述，並點擊「開始分析」。',
   'common.openMaterials': '打開材料區',
@@ -600,6 +602,8 @@ const zhTW: Dict = {
   'st.clearConfirm': '確定清除材料、分析結果與面試記錄？',
   'st.language': '介面語言',
 
+  'err.RESUME_ASSEMBLY': '無法準確定位修改對應的原文。請重新分析後再匯出，原始履歷未修改。',
+  'err.RESUME_REVIEW': '無法準確定位修改對應的原文。請重新分析後再匯出，原始履歷未修改。',
   'err.RESUME_EMPTY': '請先上載或貼上履歷。',
   'err.RESUME_TOO_SHORT': '履歷內容太少，請補充完整的經歷描述。',
   'err.JD_EMPTY': '請貼上職位描述，或從連結匯入。',
@@ -724,7 +728,7 @@ const en: Dict = {
   'common.none': 'None',
   'common.langMismatch': 'Generated in {lang}',
   'common.regenInLang': 'Regenerate in current language',
-  'common.staleResult': 'Materials changed — this result is based on the old version',
+  'common.staleResult': 'The resume, JD or job title changed. Regenerate to analyze current materials and resume review. You can still cancel edits or undo decisions.',
   'common.supplementChanged': 'New facts added — regenerate to include them',
   'common.needMaterials': 'Add your resume and a job description on the left, then click “Analyze”.',
   'common.openMaterials': 'Open materials',
@@ -913,6 +917,8 @@ const en: Dict = {
   'st.clearConfirm': 'Clear materials, results and interview history?',
   'st.language': 'Interface language',
 
+  'err.RESUME_ASSEMBLY': 'A change could not be mapped safely to its source. Re-analyze before exporting. Your original is unchanged.',
+  'err.RESUME_REVIEW': 'A change could not be mapped safely to its source. Re-analyze before exporting. Your original is unchanged.',
   'err.RESUME_EMPTY': 'Please upload or paste your resume.',
   'err.RESUME_TOO_SHORT': 'The resume is too short. Please include your full experience.',
   'err.JD_EMPTY': 'Please paste a job description or import it from a link.',

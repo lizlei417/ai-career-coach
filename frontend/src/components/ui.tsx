@@ -146,9 +146,9 @@ export function ResultBanners({ fingerprint, supKey, lang, onRegenerate, loading
     <Notice
       tone={stale ? 'warn' : 'info'}
       action={
-        stale ? null : (
+        (
           <Button size="sm" variant="secondary" loading={loading} onClick={onRegenerate} icon={<RefreshCw className="h-3.5 w-3.5" />}>
-            {langDiff && !supChanged ? t('common.regenInLang') : t('common.regenerate')}
+            {stale ? t('common.regenerate') : langDiff && !supChanged ? t('common.regenInLang') : t('common.regenerate')}
           </Button>
         )
       }

@@ -18,7 +18,7 @@ from fastapi import HTTPException, Request, Response
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-APP_ID = "codex_v2"
+APP_ID = "codex_v3"
 identity = ContextVar("career_user")
 request_context = ContextVar("career_request", default=None)
 BUCKET = "career-resumes-private"
@@ -374,7 +374,7 @@ def install(app):
         with connect() as db:
             return counts(db)
 
-    if APP_ID == "codex_v2":
+    if APP_ID == "codex_v3":
 
         @app.delete("/api/my-data")
         def clear_all():

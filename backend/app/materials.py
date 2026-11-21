@@ -10,7 +10,7 @@ import io
 import ipaddress
 import re
 import socket
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
 
 import httpx
 from bs4 import BeautifulSoup
@@ -55,6 +55,8 @@ def pdf_to_text(data: bytes) -> dict:
     if len(meaningful) < 30:
         # pages exist but nothing extractable -> most likely a scanned image PDF
         raise AppError(errors.PDF_NO_TEXT, 422)
+    if len(text) > MAX_TEXT_CHARS:
+        raise AppError('CONTEXT_LIMIT', 422)
     return {"text": text[:MAX_TEXT_CHARS], "pages": len(pages), "truncated": len(text) > MAX_TEXT_CHARS}
 
 
@@ -94,8 +96,24 @@ async def fetch_job_posting(url: str) -> dict:
         "Accept-Language": "en,zh-CN;q=0.9,zh-TW;q=0.8",
     }
     try:
-        async with httpx.AsyncClient(timeout=15, follow_redirects=True, headers=headers) as client:
-            resp = await client.get(url)
+        async with httpx.AsyncClient(timeout=15, follow_redirects=False, headers=headers) as client:
+            for _ in range(6):
+                target = urlparse(url)
+                if target.scheme not in ('http', 'https') or not _host_is_public(target.hostname or ''):
+                    raise AppError(errors.URL_FETCH_FAILED, 422)
+                async with client.stream('GET', url) as response:
+                    if response.is_redirect:
+                        url = urljoin(url, response.headers.get('location', ''))
+                        continue
+                    data = bytearray()
+                    async for chunk in response.aiter_bytes():
+                        data.extend(chunk)
+                        if len(data) > MAX_UPLOAD_BYTES:
+                            raise AppError(errors.URL_NO_CONTENT, 422)
+                    resp = httpx.Response(response.status_code, headers=response.headers, content=bytes(data))
+                    break
+            else:
+                raise AppError(errors.URL_FETCH_FAILED, 422)
     except httpx.HTTPError:
         raise AppError(errors.URL_FETCH_FAILED, 422)
     if resp.status_code >= 400:

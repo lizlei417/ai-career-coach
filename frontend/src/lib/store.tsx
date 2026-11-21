@@ -1,4 +1,4 @@
-import {publicHome,entryFeature,changeFeature} from '../cloud'
+import {publicHome,entryFeature,changeFeature,rememberLanguage} from '../cloud'
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { renameProject as renameSaved, deleteProject as deleteSaved,readProject,saveProject, type Project, type SavedProject } from './projects'
 import { ApiError, get, post } from './api'
@@ -23,6 +23,7 @@ interface Stamped<T> {
   data: T
   fingerprint: string
   supKey: string
+  source?: { text: string; lines: Materials['resume_lines'] }
 }
 
 export interface InterviewState {
@@ -94,6 +95,8 @@ interface Ctx {
   switching: boolean
   saving: boolean
   saveFailed: boolean
+  flushSave: () => Promise<void>
+  retrySave: () => Promise<void>
   setDraft: (id: string, value: string) => void
   s: Persisted
   t: (k: TKey, v?: Record<string, string | number>) => string
@@ -146,6 +149,7 @@ export function AppProvider({ children, project, projects, select, create, renam
   const [saving, setSaving] = useState(false)
   const [saveFailed, setSaveFailed] = useState(false)
   const [busy, setBusy] = useState<Partial<Record<BusyKey, boolean>>>({})
+  const running = useRef(new Set<BusyKey>())
   const [errors, setErrors] = useState<Partial<Record<ErrKey, string>>>({})
   const [llm, setLlm] = useState<LLMPublic | null>(null)
   const [kb, setKb] = useState<KBStatus | null>(null)
@@ -157,6 +161,12 @@ export function AppProvider({ children, project, projects, select, create, renam
   const pendingSave = useRef(Promise.resolve())
   const projectName=useRef(project.name)
   projectName.current=project.name
+  useEffect(() => {
+    if (!saving && !saveFailed) return
+    const guard = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = '' }
+    window.addEventListener('beforeunload', guard)
+    return () => window.removeEventListener('beforeunload', guard)
+  }, [saving, saveFailed])
   if(activeId!==project.id){
     setActiveId(project.id)
     const next={...project.state,feature:entryFeature(s.feature)}
@@ -170,8 +180,6 @@ export function AppProvider({ children, project, projects, select, create, renam
     lastSaved.current=s
     let current = true
     setSaving(true)
-    const guard = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = '' }
-    window.addEventListener('beforeunload', guard)
     const name=projectName.current
     const write = pendingSave.current.catch(() => {}).then(async () => {
       revision.current = await saveProject({ id: project.id, name, revision: revision.current, state: s })
@@ -181,10 +189,9 @@ export function AppProvider({ children, project, projects, select, create, renam
       if (!current) return
       setSaveFailed(failed)
       setSaving(false)
-      if (!failed) window.removeEventListener('beforeunload', guard)
     }
     write.then(() => finish(false), () => finish(true))
-    return () => { current = false; window.removeEventListener('beforeunload', guard) }
+    return () => { current = false }
   }, [project.id, s])
 
   async function changeProject(value: string, isNew = false) {
@@ -244,10 +251,12 @@ export function AppProvider({ children, project, projects, select, create, renam
   const clearError = useCallback((k: ErrKey) => setErrors((e) => ({ ...e, [k]: undefined })), [])
 
   const run = useCallback(async <T,>(k: BusyKey, fn: () => Promise<T>) => {
+    if (running.current.has(k)) return undefined
     if (!llm?.configured && k !== 'pdf' && k !== 'url') {
       setErrors(e => ({ ...e, [k]: 'LLM_NOT_CONFIGURED' }))
       return undefined
     }
+    running.current.add(k)
     setBusy((b) => ({ ...b, [k]: true }))
     setErrors((e) => ({ ...e, [k]: undefined }))
     try {
@@ -257,6 +266,7 @@ export function AppProvider({ children, project, projects, select, create, renam
       if (code !== 'ABORTED') setErrors((er) => ({ ...er, [k]: code }))
       return undefined
     } finally {
+      running.current.delete(k)
       void refreshStatus()
       setBusy((b) => ({ ...b, [k]: false }))
     }
@@ -296,7 +306,7 @@ export function AppProvider({ children, project, projects, select, create, renam
     // Supplements are student-provided facts and stay valid across re-analysis.
     patch((c) => ({
       materials: out,
-      inputsKey: keyOf(c.inputs),
+      inputsKey: keyOf(cur.inputs),
       feature: c.feature === 'settings' ? 'overview' : c.feature,
     }))
     return true
@@ -315,25 +325,43 @@ export function AppProvider({ children, project, projects, select, create, renam
   /* ---------------- resume */
   const generateResume = useCallback(async () => {
     const cur = sRef.current
-    if (!cur.materials) return
-    const out = await run('resume', () => post<OptimizeResult>('/api/resume/optimize', { materials: bundle(), lang: cur.lang }))
-    if (!out) return
-    patch((c) => ({
-      resume: { data: out, fingerprint: c.materials!.fingerprint, supKey: supKeyOf(c.supplements), decisions: {} },
-    }))
+    if (!cur.inputs.resumeText.trim()) { setError('resume', 'RESUME_EMPTY'); return }
+    if (!cur.inputs.jdText.trim()) { setError('resume', 'JD_EMPTY'); return }
+    const result = await run('resume', async () => {
+      const materials = !cur.materials || keyOf(cur.inputs) !== cur.inputsKey
+        ? await post<Materials>('/api/materials/prepare', { resume_text: cur.inputs.resumeText, jd_text: cur.inputs.jdText, job_title: cur.inputs.jobTitle, lang: cur.lang })
+        : cur.materials
+      const out = await post<OptimizeResult>('/api/resume/optimize', { materials: { ...materials, supplements: cur.supplements }, lang: cur.lang })
+      return { materials, out }
+    })
+    if (!result) return
+    patch({ materials: result.materials, inputsKey: keyOf(cur.inputs),
+      resume: { data: result.out, fingerprint: result.materials.fingerprint, supKey: supKeyOf(cur.supplements), decisions: {},
+        source: { text: cur.inputs.resumeText, lines: result.materials.resume_lines } } })
   }, [run, patch])
 
   const setDecision = useCallback((id: string, d: Decision) => {
-    patch((c) => (c.resume ? { resume: { ...c.resume, decisions: { ...c.resume.decisions, [id]: d } } } : {}))
+    patch((c) => {
+      if (!c.resume || !c.resume.data.items.some(it => it.id === id)) return {}
+      if (d.state !== 'pending' && (keyOf(c.inputs) !== c.inputsKey || c.resume.fingerprint !== c.materials?.fingerprint || running.current.has('resume'))) return {}
+      return { resume: { ...c.resume, decisions: { ...c.resume.decisions, [id]: d } } }
+    })
   }, [patch])
 
   /* ---------------- match */
   const generateMatch = useCallback(async () => {
     const cur = sRef.current
-    if (!cur.materials) return
-    const out = await run('match', () => post<MatchResult>('/api/match', { materials: bundle(), lang: cur.lang }))
-    if (!out) return
-    patch((c) => ({ match: { data: out, fingerprint: c.materials!.fingerprint, supKey: supKeyOf(c.supplements) } }))
+    if (!cur.inputs.resumeText.trim()) { setError('match', 'RESUME_EMPTY'); return }
+    if (!cur.inputs.jdText.trim()) { setError('match', 'JD_EMPTY'); return }
+    const result = await run('match', async () => {
+      const materials = !cur.materials || keyOf(cur.inputs) !== cur.inputsKey
+        ? await post<Materials>('/api/materials/prepare', { resume_text: cur.inputs.resumeText, jd_text: cur.inputs.jdText, job_title: cur.inputs.jobTitle, lang: cur.lang })
+        : cur.materials
+      const out = await post<MatchResult>('/api/match', { materials: { ...materials, supplements: cur.supplements }, lang: cur.lang })
+      return { materials, out }
+    })
+    if (!result) return
+    patch({ materials: result.materials, inputsKey: keyOf(cur.inputs), match: { data: result.out, fingerprint: result.materials.fingerprint, supKey: supKeyOf(cur.supplements) } })
   }, [run, patch])
 
   /* ---------------- interview */
@@ -441,9 +469,18 @@ export function AppProvider({ children, project, projects, select, create, renam
 
   const value: Ctx = {
     project, projects, switching, changeProject, saving, saveFailed,renameProject,deleteProject,reloadProjects:reload,pendingProject,
+    flushSave: async () => { await pendingSave.current },
+    retrySave: async () => {
+      setSaving(true)
+      const write = pendingSave.current.catch(() => {}).then(async () => {
+        revision.current = await saveProject({ id: project.id, name: projectName.current, revision: revision.current, state: sRef.current })
+      })
+      pendingSave.current = write
+      try { await write; setSaveFailed(false) } catch { setSaveFailed(true) } finally { setSaving(false) }
+    },
     setDraft: (id, value) => patch(c => ({ drafts: { ...c.drafts, [id]: value } })),
     s, t, busy, errors, llm, kb, inputsDirty, ready, isStale, supKey,
-    setLang: (l) => patch({ lang: l }),
+    setLang: (l) => { rememberLanguage(l); patch({ lang: l }) },
     enter: () => patch({ entered: true }),
     leave: publicHome,
     setFeature: (f) => {changeFeature(f);patch({feature:f})},

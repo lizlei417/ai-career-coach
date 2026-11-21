@@ -14,7 +14,7 @@ export default function App() {
 
 function Workspace() {
   const { s } = useApp()
-  const { t, project, saving, saveFailed, switching } = useApp()
+  const { t, project, saving, saveFailed, switching, retrySave } = useApp()
   const main = useRef<HTMLDivElement>(null)
   useEffect(() => {
     main.current?.scrollTo({ top: 0 })
@@ -34,7 +34,7 @@ function Workspace() {
               {!saveFailed && (saving ? t('project.saving') : t('project.saved'))}
             </span>
           </header>
-          {saveFailed && <p role="alert">{s.lang === 'en' ? 'Changes could not be saved. Check storage or reload if another tab edited this project.' : '项目保存失败。请检查存储空间；若其他标签页已修改此项目，请先复制草稿再刷新。'}</p>}
+          {saveFailed && <p role="alert">{s.lang === 'en' ? 'Changes could not be saved. Check storage or reload if another tab edited this project.' : '项目保存失败。请检查存储空间；若其他标签页已修改此项目，请先复制草稿再刷新。'} <button disabled={saving} className="underline" onClick={retrySave}>{t('common.retry')}</button></p>}
           <View key={project.id}/>
         </div>}
       </main>

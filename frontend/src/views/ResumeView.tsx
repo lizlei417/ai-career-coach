@@ -1,5 +1,7 @@
-import { AlertTriangle, Check, ClipboardCopy, CornerDownRight, PenLine, RefreshCw, RotateCcw, ShieldCheck, Undo2 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { AlertTriangle, Check, CornerDownRight, PenLine, RefreshCw, RotateCcw, ShieldCheck, Undo2 } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import FinalResume from '../components/FinalResume'
+import { confirmAction } from '../ProductDialog'
 import { diffTokens, newNumbers } from '../lib/diff'
 import { useApp } from '../lib/store'
 import type { TKey } from '../lib/i18n'
@@ -11,9 +13,15 @@ type Filter = 'all' | 'pending' | 'done'
 export default function ResumeView() {
   const { t, s, ready, busy, errors, generateResume, clearError, isStale } = useApp()
   const [filter, setFilter] = useState<Filter>('all')
-  const [copied, setCopied] = useState(false)
   const r = s.resume
   const stale = r ? isStale(r.fingerprint) : false
+  const regenerate = async () => {
+    if (r && Object.values(r.decisions).some(d => d.state !== 'pending')) {
+      const ok = await confirmAction(s.lang === 'en' ? 'Regenerating replaces these suggestions and review decisions. Continue?' : s.lang === 'zh-TW' ? '重新生成將替換目前建議及審核決定，是否繼續？' : '重新生成将替换当前建议和审核决定，是否继续？')
+      if (!ok) return
+    }
+    await generateResume()
+  }
 
   if (!ready) return <NeedMaterials />
 
@@ -24,20 +32,6 @@ export default function ResumeView() {
     return filter === 'all' || (filter === 'pending' ? st === 'pending' : st !== 'pending')
   })
 
-  const copyFinal = async () => {
-    if (!r || !s.materials) return
-    const map = new Map(items.map((i) => [i.source_id, i]))
-    const lines = s.materials.resume_lines.map((l) => {
-      const it = map.get(l.id)
-      const d = it ? r.decisions[it.id] : undefined
-      if (it && d?.state === 'adopted') return it.rewrite
-      if (it && d?.state === 'edited' && d.text) return d.text
-      return l.text
-    })
-    await navigator.clipboard.writeText(lines.join('\n'))
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1600)
-  }
 
   return (
     <div className="space-y-5 animate-fade">
@@ -47,10 +41,7 @@ export default function ResumeView() {
         actions={
           r ? (
             <>
-              <Button variant="ghost" size="sm" onClick={copyFinal} icon={copied ? <Check className="h-3.5 w-3.5" /> : <ClipboardCopy className="h-3.5 w-3.5" />} disabled={!items.length}>
-                {copied ? t('common.copied') : t('ro.export')}
-              </Button>
-              <Button variant="secondary" size="sm" loading={busy.resume} disabled={stale} onClick={generateResume} icon={<RefreshCw className="h-3.5 w-3.5" />}>
+              <Button variant="secondary" size="sm" loading={busy.resume} onClick={regenerate} icon={<RefreshCw className="h-3.5 w-3.5" />}>
                 {t('common.regenerate')}
               </Button>
             </>
@@ -71,7 +62,8 @@ export default function ResumeView() {
 
       {r && (
         <>
-          <ResultBanners fingerprint={r.fingerprint} supKey={r.supKey} lang={r.data.lang} onRegenerate={generateResume} loading={busy.resume} />
+          <ResultBanners fingerprint={r.fingerprint} supKey={r.supKey} lang={r.data.lang} onRegenerate={regenerate} loading={busy.resume} />
+          <FinalResume />
           {busy.resume && <WorkingState label={t('ro.running')} rows={1} />}
 
           {items.length > 0 ? (
@@ -93,7 +85,7 @@ export default function ResumeView() {
                   <div className="border-l border-paper-200 px-5 py-2.5">{t('ro.rewrite')}</div>
                 </div>
                 {shown.map((it) => (
-                  <RewriteRow key={it.id} it={it} index={items.indexOf(it) + 1} decision={r.decisions[it.id]} disabled={stale} />
+                  <RewriteRow key={`${r.fingerprint}:${it.id}:${it.rewrite}`} it={it} index={items.indexOf(it) + 1} decision={r.decisions[it.id]} disabled={stale || !!busy.resume} />
                 ))}
               </div>
             </>
@@ -116,6 +108,7 @@ function RewriteRow({ it, index, decision, disabled }: { it: OptimizeItem; index
   const st = decision?.state ?? 'pending'
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(decision?.text ?? it.rewrite)
+  useEffect(() => { if (!editing) setDraft(decision?.text ?? it.rewrite) }, [decision?.text, it.rewrite, editing])
   const flagged = it.verification.status === 'needs_review'
   const parts = useMemo(() => diffTokens(it.original, it.rewrite), [it.original, it.rewrite])
   const reqMap = new Map((s.materials?.requirements ?? []).map((q) => [q.id, q]))
@@ -131,7 +124,7 @@ function RewriteRow({ it, index, decision, disabled }: { it: OptimizeItem; index
   const dim = st === 'kept'
 
   return (
-    <div className={`border-b border-paper-200 last:border-b-0 ${st !== 'pending' ? 'bg-paper-50/60' : ''}`}>
+    <div data-testid={`rewrite-${it.id}`} className={`border-b border-paper-200 last:border-b-0 ${st !== 'pending' ? 'bg-paper-50/60' : ''}`}>
       <div className="grid grid-cols-2">
         {/* original */}
         <div className="px-5 pb-4 pt-4">
@@ -163,8 +156,8 @@ function RewriteRow({ it, index, decision, disabled }: { it: OptimizeItem; index
               <div className="mt-1 text-[11.5px] text-ink-500">{t('ro.editHint')}</div>
               {editIssues.length > 0 && <div className="mt-1.5 text-[12px] text-warn-600">{t('ro.editStillFlagged', { items: editIssues.join('、') })}</div>}
               <div className="mt-2.5 flex gap-2">
-                <Button size="sm" variant="primary" disabled={!draft.trim()} onClick={() => { setDecision(it.id, { state: 'edited', text: draft.trim() }); setEditing(false) }}>
-                  {editIssues.length ? t('ro.confirmAdopt') : t('ro.adopt')}
+                <Button size="sm" variant="primary" disabled={disabled || !draft.trim()} onClick={() => { setDecision(it.id, { state: 'edited', text: draft.trim() }); setEditing(false) }}>
+                  {s.lang === 'en' ? 'Save edit' : s.lang === 'zh-TW' ? '儲存修改' : '保存修改'}
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => { setEditing(false); setDraft(decision?.text ?? it.rewrite) }}>{t('common.cancel')}</Button>
               </div>
@@ -235,9 +228,12 @@ function RewriteRow({ it, index, decision, disabled }: { it: OptimizeItem; index
                   </Button>
                 </>
               ) : (
+                <>
+                <Button size="sm" variant="secondary" disabled={disabled} onClick={() => setEditing(true)} icon={<PenLine className="h-3.5 w-3.5" />}>{t('ro.edit')}</Button>
                 <Button size="sm" variant="ghost" onClick={() => setDecision(it.id, { state: 'pending' })} icon={<Undo2 className="h-3.5 w-3.5" />}>
                   {t('ro.undo')}
                 </Button>
+                </>
               )}
             </div>
           )}

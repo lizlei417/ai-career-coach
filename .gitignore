@@ -1,5 +1,5 @@
 .env*
-node_modules/
+node_modules
 dist/
 .venv/
 __pycache__/
@@ -9,3 +9,8 @@ __pycache__/
 *.log
 
 !.env.example
+
+tests/evidence/*.zip
+
+# Local audit artifacts and synthetic browser traces are not deployment source.
+tests/evidence/

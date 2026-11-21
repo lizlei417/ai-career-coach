@@ -49,9 +49,12 @@ export default function MaterialsPanel() {
     const out = await run('pdf', async () => {
       if (f.size > 8 * 1024 * 1024) throw new ApiError('FILE_TOO_LARGE')
       if (!((await f.slice(0, 5).text()) === '%PDF-')) throw new ApiError('PDF_UNREADABLE')
-      return await upload<{text:string;pages:number;file_id:string}>('/api/extract/pdf',f,project.id)
+      return await upload<{text:string;pages:number;file_id:string;warning?:string}>('/api/extract/pdf',f,project.id)
     })
-    if (out) setInputs({ resumeText: out.text, resumeFile: { name: f.name, pages: out.pages, fileId: out.file_id } })
+    if (out) {
+      setInputs({ resumeText: out.text, resumeFile: { name: f.name, pages: out.pages, fileId: out.file_id } })
+      if (out.warning) setError('pdf', out.warning)
+    }
   }
   const onDrop = (e: DragEvent) => {
     e.preventDefault()

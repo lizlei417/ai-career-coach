@@ -7,7 +7,7 @@ from typing import Any, Literal, Optional
 from urllib.parse import urlsplit
 from starlette._utils import get_route_path
 from fastapi import FastAPI, File, Form, Request, UploadFile
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -108,8 +108,10 @@ async def extract_pdf(file: UploadFile = File(...), project_id:str=Form("workspa
     try:
         parsed = await run_in_threadpool(pdf_to_text,data)
     except AppError as error:
-        if error.code!="PDF_NO_TEXT" or cloud.APP_ID!="codex_v2": raise
-        parsed={"text":"","pages":0}
+        if error.code!="PDF_NO_TEXT" or cloud.APP_ID!="codex_v3": raise
+        from io import BytesIO
+        from pypdf import PdfReader
+        parsed={"text":"","pages":len(PdfReader(BytesIO(data)).pages),"warning":"PDF_NO_TEXT"}
     file_id=await run_in_threadpool(cloud.store_pdf,project_id,data)
     return {**parsed,"file_id":file_id}
 
@@ -117,6 +119,21 @@ async def extract_pdf(file: UploadFile = File(...), project_id:str=Form("workspa
 @app.post("/api/extract/url")
 async def extract_url(req: UrlReq):
     return await fetch_job_posting(req.url)
+
+
+@app.get('/api/workspaces/{id}/resume/final')
+def final_resume(id: str):
+    from .final_resume import compose
+    return compose(cloud.read(id)['state'])
+
+
+@app.get('/api/workspaces/{id}/resume/export')
+def export_resume(id: str, format: Literal['pdf', 'docx'] = 'pdf'):
+    from .final_resume import compose, pdf_bytes, docx_bytes
+    text = compose(cloud.read(id)['state'])['text']
+    content = pdf_bytes(text) if format == 'pdf' else docx_bytes(text)
+    media = 'application/pdf' if format == 'pdf' else 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    return Response(content, media_type=media, headers={'Content-Disposition': f'attachment; filename="resume.{format}"'})
 
 
 @app.post("/api/materials/prepare")

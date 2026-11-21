@@ -25,6 +25,10 @@ let latestWrite = 0;
 export let savedState: any = null;
 export let authLanguage: Lang =
   (localStorage.getItem("coach.language") as Lang) || "zh-CN";
+export function rememberLanguage(lang: Lang) {
+  authLanguage = lang;
+  localStorage.setItem('coach.language', lang);
+}
 export const ownerKey = (name: string) => appId + "." + owner + "." + name;
 export function publicHome() {
   location.assign(base);
@@ -39,6 +43,7 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
   headers.set("Authorization", "Bearer " + data.session.access_token);
   return fetch(base + path.replace(/^\//, ""), {
     ...options,
+    signal: options.signal ?? AbortSignal.timeout(75000),
     headers,
     cache: "no-store",
   });
@@ -223,8 +228,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   }
   navigation.current = navigate;
   function language(v: Lang) {
-    authLanguage = v;
-    localStorage.setItem("coach.language", v);
+    rememberLanguage(v);
     document.documentElement.lang = v;
     setLang(v);
   }
@@ -268,7 +272,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
         if (!live || current !== seq) return;
         if (me.id !== session.user.id) throw Error("identity");
         owner = me.id;
-        if (appId !== "codex_v2") {
+        if (appId !== "codex_v3") {
           const snapshot = await apiFetch(
             "/api/workspaces/" + (appId === "claude" ? "draft" : "workspace"),
           );
@@ -447,10 +451,12 @@ export function AuthGate({ children }: { children: ReactNode }) {
                 <button disabled={busy}>{t.change}</button>
               </form>
               <button
+                disabled={busy}
                 onClick={async () => {
                   setBusy(true);
                   try {
                     await queued.catch(() => {});
+                    await (await import('./lib/projects')).waitProjectWrites();
                     const result = await client.auth.signOut({
                       scope: "local",
                     });

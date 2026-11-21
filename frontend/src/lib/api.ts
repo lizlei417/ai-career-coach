@@ -38,6 +38,7 @@ export async function post<T>(path: string, data: unknown, signal?: AbortSignal)
       signal,
     })
   } catch (e: any) {
+    if (e?.name === 'TimeoutError') throw new ApiError('LLM_TIMEOUT')
     if (e?.name === 'AbortError') throw new ApiError('ABORTED')
     throw new ApiError('NETWORK')
   }
