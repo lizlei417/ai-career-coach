@@ -1,3 +1,4 @@
+import {apiFetch} from '../cloud'
 import { Check, ChevronsLeft, ChevronsRight, FileUp, Link2, Loader2, Sparkles, X } from 'lucide-react'
 import { useRef, useState, type DragEvent } from 'react'
 import { post, upload } from '../lib/api'
@@ -42,8 +43,8 @@ export default function MaterialsPanel() {
       setError('pdf', 'FILE_TYPE')
       return
     }
-    const out = await run('pdf', () => upload<{ text: string; pages: number }>('/api/extract/pdf', f))
-    if (out) setInputs({ resumeText: out.text, resumeFile: { name: f.name, pages: out.pages } })
+    const out = await run('pdf', () => upload<{ text: string; pages: number; file_id:string }>('/api/extract/pdf', f))
+    if (out) setInputs({ resumeText: out.text, resumeFile: { name: f.name, pages: out.pages, fileId:out.file_id } })
   }
   const onDrop = (e: DragEvent) => {
     e.preventDefault()
@@ -83,7 +84,15 @@ export default function MaterialsPanel() {
           <div className="mb-2 flex items-center justify-between">
             <label htmlFor="resume" className="field-label">{t('mat.resume')}</label>
             {inputs.resumeText && (
-              <button className="text-[11.5px] text-ink-500 hover:text-ink-900" onClick={() => setInputs({ resumeText: '', resumeFile: null })}>
+              <button className="text-[11.5px] text-ink-500 hover:text-ink-900" onClick={async()=>{
+                try{
+                  if(inputs.resumeFile?.fileId){
+                    const r=await apiFetch('/api/documents/'+inputs.resumeFile.fileId,{method:'DELETE'})
+                    if(!r.ok&&r.status!==404)throw Error()
+                  }
+                  setInputs({resumeText:'',resumeFile:null})
+                }catch{setError('pdf','NETWORK')}
+              }}>
                 {t('mat.clear')}
               </button>
             )}

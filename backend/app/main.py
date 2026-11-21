@@ -4,7 +4,9 @@ from __future__ import annotations
 import logging
 from typing import Any, Literal, Optional
 
-from fastapi import FastAPI, File, Request, UploadFile
+from urllib.parse import urlsplit
+from starlette._utils import get_route_path
+from fastapi import FastAPI, File, Form, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -20,10 +22,13 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 log = logging.getLogger("coach.api")
 
 app = FastAPI(title="AI Career Coach API", version="1.0.0")
+from . import cloud
+cloud.install(app)
+
 @app.middleware("http")
 async def local_writes(request, call_next):
     origin = request.headers.get("origin")
-    if request.method != "GET" and origin and origin != str(request.base_url).rstrip("/"):
+    if request.method != "GET" and origin and urlsplit(origin).netloc != request.headers.get("host"):
         return JSONResponse(status_code=403, content={"error": {"code": "BAD_REQUEST"}})
     return await call_next(request)
 
@@ -94,12 +99,19 @@ async def test_settings():
 
 
 @app.post("/api/extract/pdf")
-async def extract_pdf(file: UploadFile = File(...)):
+async def extract_pdf(file: UploadFile = File(...), project_id:str=Form("workspace")):
     name = (file.filename or "").lower()
     if not (name.endswith(".pdf") or file.content_type == "application/pdf"):
         raise AppError(errors.FILE_TYPE, 415)
     data = await file.read(MAX_UPLOAD_BYTES + 1)
-    return pdf_to_text(data)
+    from starlette.concurrency import run_in_threadpool
+    try:
+        parsed = await run_in_threadpool(pdf_to_text,data)
+    except AppError as error:
+        if error.code!="PDF_NO_TEXT" or cloud.APP_ID!="codex_v2": raise
+        parsed={"text":"","pages":0}
+    file_id=await run_in_threadpool(cloud.store_pdf,project_id,data)
+    return {**parsed,"file_id":file_id}
 
 
 @app.post("/api/extract/url")
@@ -174,6 +186,7 @@ if FRONTEND_DIST.exists():
 
     @app.get("/{path:path}")
     async def spa(path: str):
+        if path.startswith("api/"): return JSONResponse({},404)
         target = FRONTEND_DIST / path
         if path and target.is_file() and FRONTEND_DIST in target.resolve().parents:
             return FileResponse(target)

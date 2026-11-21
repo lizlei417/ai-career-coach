@@ -1,3 +1,7 @@
+# Supabase private development branch
+
+See [cloud setup and test status](deploy/README.md) for the current branch configuration.
+
 # AI Career Coach · DeepSeek local integration
 
 This development branch runs on http://127.0.0.1:8111/. GitHub Pages continues to serve the archived offline demo.
