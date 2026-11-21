@@ -98,3 +98,10 @@ class M3Tests(unittest.IsolatedAsyncioTestCase):
         with patch('app.m3.M3_PROMPT_PATH',Path('/missing/official-prompt')):
             self.assertFalse(m3.prompt_status()[0]['loaded'])
             with self.assertRaises(AppError):m3.system_prompt()
+
+    async def test_language_is_explicit_and_never_guessed(self):
+        with patch('app.m3.complete_json',AsyncMock()) as model:
+            with self.assertRaises(AppError) as e:await m3.prepare_materials(RESUME,JD,'',None,'current_student','job')
+            self.assertEqual(e.exception.code,'LANGUAGE_REQUIRED');model.assert_not_called()
+            with self.assertRaises(AppError) as e:await m3.resume_optimize({},None)
+            self.assertEqual(e.exception.code,'LANGUAGE_REQUIRED');model.assert_not_called()

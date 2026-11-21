@@ -78,7 +78,7 @@ def exercise(baseline=False):
     form.locator('[name=password]').fill('StrongPass123');form.locator('button').click()
    else:
     form=p.locator('.auth-card > form');form.locator('[name=email]').fill('a@example.test');form.locator('[name=password]').fill('fixture-password');form.locator('button').click()
-   p.locator('.workspace').wait_for();create('Marketing Assistant');p.locator('#user-stage').select_option('current_student');p.locator('#job-goal').select_option('internship')
+   p.locator('.workspace').wait_for();create('Marketing Assistant');p.locator('#coach-language').select_option('zh-CN');p.locator('#user-stage').select_option('current_student');p.locator('#job-goal').select_option('internship')
    if not baseline:record('账户注册、验证、登录及表单错误（模拟 Auth）')
    # Real multi-page PDF generated from fictional source only.
    q=context.new_page();q.set_content(''.join('<section style="break-after:page;font:14px Arial;white-space:pre-wrap">'+x+'</section>' for x in RESUME_PAGES));pdf=q.pdf();q.close();(OUT/'original-fictional.pdf').write_bytes(pdf)

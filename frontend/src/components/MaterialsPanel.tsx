@@ -12,7 +12,7 @@ function count(s: string) {
 }
 
 export default function MaterialsPanel() {
-  const { project,t, s, llm, setInputs, setMaterialsOpen, prepare, run, busy, errors, clearError, setError, inputsDirty, ready, removeSupplement } = useApp()
+  const { project,t, s, llm, setInputs, setLang, setMaterialsOpen, prepare, run, busy, errors, clearError, setError, inputsDirty, ready, removeSupplement } = useApp()
   const { inputs } = s
   const fileRef = useRef<HTMLInputElement>(null)
   const [preview, setPreview] = useState<Blob|null>(null)
@@ -92,6 +92,12 @@ export default function MaterialsPanel() {
 
       <div className="scroll-thin flex-1 space-y-6 overflow-y-auto px-5 pb-6">
         <div className="space-y-3 rounded-md border border-paper-200 bg-white p-3" data-testid="career-profile">
+          <label className="block text-[12px] text-ink-700">简体中文 · 繁體中文 · English
+            <select id="coach-language" className="field mt-1 h-9" value={inputs.languageConfirmed ? s.lang : ''} onChange={e => setLang(e.target.value as typeof s.lang)}>
+              <option value="">请选择语言 / 請選擇語言 / Select a language</option>
+              <option value="zh-CN">简体中文</option><option value="zh-TW">繁體中文</option><option value="en">English</option>
+            </select>
+          </label>
           <label className="block text-[12px] text-ink-700">{t('profile.stage')}
             <select id="user-stage" className="field mt-1 h-9" value={inputs.userStage || ''} onChange={e => setInputs({ userStage: e.target.value as typeof inputs.userStage })}>
               <option value="">{t('profile.select')}</option>

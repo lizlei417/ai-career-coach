@@ -1,6 +1,7 @@
 import type { Lang } from './types'
 
 const zhCN = {
+  'err.LANGUAGE_REQUIRED': '请先明确选择输出语言。',
   'ro.scopeReview': '原文的协助或参与范围可能变更',
   'ro.negationReview': '原文的否定或限制条件可能变更',
   'profile.stage': '哪项身份最符合你本次求职？',
@@ -360,6 +361,7 @@ const zhCN = {
 type Dict = Record<keyof typeof zhCN, string>
 
 const zhTW: Dict = {
+  'err.LANGUAGE_REQUIRED': '請先明確選擇輸出語言。',
   'ro.scopeReview': '原文的協助或參與範圍可能變更',
   'ro.negationReview': '原文的否定或限制條件可能變更',
   'profile.stage': '哪項身分最符合你本次求職？',
@@ -707,6 +709,7 @@ const zhTW: Dict = {
 }
 
 const en: Dict = {
+  'err.LANGUAGE_REQUIRED': 'Please explicitly select an output language first.',
   'ro.scopeReview': 'Support or participation scope may have changed',
   'ro.negationReview': 'A negation or constraint may have changed',
   'profile.stage': 'Which stage fits this application?',

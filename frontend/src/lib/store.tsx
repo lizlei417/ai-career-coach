@@ -18,6 +18,7 @@ export interface Inputs {
   jdUrl: string
   jdFromUrl: boolean
   jdSourceUrl?: string
+  languageConfirmed?: boolean
   userStage?: "no_experience" | "current_student" | "recent_graduate"
   jobGoal?: "internship" | "job"
 }
@@ -260,6 +261,9 @@ export function AppProvider({ children, project, projects, select, create, renam
       setErrors(e => ({ ...e, [k]: 'LLM_NOT_CONFIGURED' }))
       return undefined
     }
+    if (k !== 'pdf' && k !== 'url' && !sRef.current.inputs.languageConfirmed) {
+      setErrors(e => ({ ...e, [k]: 'LANGUAGE_REQUIRED' })); return undefined
+    }
     running.current.add(k)
     setBusy((b) => ({ ...b, [k]: true }))
     setErrors((e) => ({ ...e, [k]: undefined }))
@@ -294,6 +298,7 @@ export function AppProvider({ children, project, projects, select, create, renam
   const prepare = useCallback(async () => {
     const cur = sRef.current
     const { resumeText, jdText, jobTitle } = cur.inputs
+    if (!cur.inputs.languageConfirmed) { setError('prepare', 'LANGUAGE_REQUIRED'); return false }
     if (!cur.inputs.userStage || !cur.inputs.jobGoal) { setError('prepare', 'PROFILE_REQUIRED'); return false }
     if (!resumeText.trim()) {
       setError('prepare', 'RESUME_EMPTY')
@@ -493,7 +498,7 @@ export function AppProvider({ children, project, projects, select, create, renam
     },
     setDraft: (id, value) => patch(c => ({ drafts: { ...c.drafts, [id]: value } })),
     s, t, busy, errors, llm, kb, inputsDirty, ready, isStale, supKey,
-    setLang: (l) => { rememberLanguage(l); patch({ lang: l }) },
+    setLang: (l) => { rememberLanguage(l); patch(c => ({ lang: l, inputs: { ...c.inputs, languageConfirmed: true } })) },
     enter: () => patch({ entered: true }),
     leave: publicHome,
     setFeature: (f) => {changeFeature(f);patch({feature:f})},

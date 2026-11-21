@@ -24,7 +24,7 @@ with sync_playwright() as pw:
   ctx.request.post('http://127.0.0.1:28648/auth/v1/signup',data={'email':email,'password':password})
   ctx.request.post('http://127.0.0.1:28648/qa/confirm',data={'email':email})
   p.goto(BASE);nav('开始使用');f=p.locator('.auth-card >form');f.locator('[name=email]').fill(email);f.locator('[name=password]').fill(password);f.locator('button').click()
-  p.locator('.workspace').wait_for();nav('新建项目');p.get_by_label('项目名称',exact=True).fill('Real DeepSeek Marketing');nav('创建');p.locator('#resume').wait_for();p.locator('#user-stage').select_option('current_student');p.locator('#job-goal').select_option('internship')
+  p.locator('.workspace').wait_for();nav('新建项目');p.get_by_label('项目名称',exact=True).fill('Real DeepSeek Marketing');nav('创建');p.locator('#resume').wait_for();p.locator('#coach-language').select_option('zh-CN');p.locator('#user-stage').select_option('current_student');p.locator('#job-goal').select_option('internship')
   q=ctx.new_page();q.set_content(''.join('<section style="white-space:pre-wrap;break-after:page">'+x+'</section>' for x in RESUME_PAGES));pdf=q.pdf();q.close()
   p.locator('input[type=file]').first.set_input_files({'name':'real-fictional.pdf','mimeType':'application/pdf','buffer':pdf});expect(p.locator('#resume')).to_contain_text('END OF ORIGINAL RESUME')
   p.locator('#jd').fill(JD);p.locator('#jobtitle').fill('Marketing Assistant')

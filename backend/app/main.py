@@ -54,14 +54,14 @@ class PrepareReq(BaseModel):
     resume_text: str = Field(default="", max_length=MAX_TEXT_CHARS * 2)
     jd_text: str = Field(default="", max_length=MAX_TEXT_CHARS * 2)
     job_title: str = Field(default="", max_length=200)
-    lang: Lang = "zh-CN"
+    lang: Optional[Lang] = None
     user_stage: Optional[Literal["no_experience", "current_student", "recent_graduate"]] = None
     job_goal: Optional[Literal["internship", "job"]] = None
 
 
 class FeatureReq(BaseModel):
     materials: dict[str, Any]
-    lang: Lang = "zh-CN"
+    lang: Optional[Lang] = None
 
 
 class QuestionReq(FeatureReq):
@@ -78,7 +78,7 @@ class FeedbackReq(FeatureReq):
 
 class SummaryReq(BaseModel):
     materials: dict[str, Any] = {}
-    lang: Lang = "zh-CN"
+    lang: Optional[Lang] = None
     turns: list[dict[str, Any]]
 
 

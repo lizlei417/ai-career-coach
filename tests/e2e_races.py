@@ -11,7 +11,7 @@ with sync_playwright() as pw:
   email='race-'+uuid4().hex[:8]+'@example.test';password='RaceTestPass123'
   ctx.request.post('http://127.0.0.1:28648/auth/v1/signup',data={'email':email,'password':password});ctx.request.post('http://127.0.0.1:28648/qa/confirm',data={'email':email})
   p.goto(BASE);nav('开始使用');f=p.locator('.auth-card >form');f.locator('[name=email]').fill(email);f.locator('[name=password]').fill(password);f.locator('button').click();p.locator('.workspace').wait_for()
-  nav('新建项目');p.get_by_label('项目名称',exact=True).fill('Race Regression');nav('创建');p.locator('#user-stage').select_option('current_student');p.locator('#job-goal').select_option('internship');p.locator('#resume').fill('\n'.join(RESUME_PAGES));p.locator('#jd').fill(JD)
+  nav('新建项目');p.get_by_label('项目名称',exact=True).fill('Race Regression');nav('创建');p.locator('#coach-language').select_option('zh-CN');p.locator('#user-stage').select_option('current_student');p.locator('#job-goal').select_option('internship');p.locator('#resume').fill('\n'.join(RESUME_PAGES));p.locator('#jd').fill(JD)
   ctl(delay=1,failure=None)
   with p.expect_request(lambda r:r.url.endswith('/materials/prepare')):nav('开始分析')
   p.locator('#jd').fill(JD+'\nPrepare content calendars.')

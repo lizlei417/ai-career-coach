@@ -46,6 +46,7 @@ def profile(stage, goal):
 async def prepare_materials(resume_text, jd_text, job_title, lang, user_stage=None, job_goal=None, resume_format="text"):
     # Parsing and exact JD-line requirements need no model call. M3 is applied
     # on each actual coaching operation, preserving the existing 10-call rule.
+    if lang not in LANG: raise AppError("LANGUAGE_REQUIRED", 422)
     p = profile(user_stage, job_goal)
     check_materials(resume_text, jd_text)
     resume, jd = segment(resume_text, "R"), segment(jd_text, "J")
@@ -69,6 +70,7 @@ def texts(b):
 
 
 async def call(task, b, lang, *, action="start", history=None, answer="", extra=""):
+    if lang not in LANG: raise AppError("LANGUAGE_REQUIRED", 422)
     p = profile(b.get("user_stage"), b.get("job_goal"))
     resume, jd = texts(b)
     chunks = index.search(task, build_query(task, p["job_goal"], resume, jd, extra), 3)
@@ -92,7 +94,8 @@ async def call(task, b, lang, *, action="start", history=None, answer="", extra=
     return out["result"], guidance, {"status": "ok", "message": str(out.get("message") or ""), "citations": citations, "prompt_version": "M3_Prompt_v1"}
 
 
-def bundle(materials):
+def bundle(materials, lang):
+    if lang not in LANG: raise AppError("LANGUAGE_REQUIRED", 422)
     b = _validate_bundle(materials)
     b.update(profile(materials.get("user_stage"), materials.get("job_goal")))
     b["resume_format"] = materials.get("resume_format") if materials.get("resume_format") in ("pdf", "word", "text") else "text"
@@ -104,7 +107,7 @@ def strings(value):
 
 
 async def resume_optimize(materials, lang):
-    b = bundle(materials)
+    b = bundle(materials, lang)
     result, guidance, meta = await call("resume_optimization", b, lang)
     if not isinstance(result.get("edits"), list) or not isinstance(result.get("questions_to_student"), list):
         raise AppError("AI_FORMAT", 502, "m3_edits")
@@ -141,7 +144,7 @@ async def resume_optimize(materials, lang):
 
 
 async def job_match(materials, lang):
-    b = bundle(materials)
+    b = bundle(materials, lang)
     result, guidance, meta = await call("job_matching", b, lang)
     if not isinstance(result.get("requirements"), list):
         raise AppError("AI_FORMAT", 502, "m3_requirements")
@@ -191,7 +194,7 @@ def question_out(question, b, guidance, meta):
 
 
 async def interview_question(materials, lang, asked, target_requirement):
-    b = bundle(materials)
+    b = bundle(materials, lang)
     # Existing clients may request a next question directly. Include previous
     # answers as evidence, never evaluate an unanswered question.
     if len(asked) >= 4 or sum(not t.get("is_follow_up") for t in asked) >= 2:
@@ -207,7 +210,7 @@ async def interview_question(materials, lang, asked, target_requirement):
 
 
 async def interview_feedback(materials, lang, question, answer, history, turns=None):
-    b = bundle(materials)
+    b = bundle(materials, lang)
     if not str(question.get("question") or "").strip() or len(norm(answer)) < 4:
         raise AppError("ANSWER_EMPTY", 422)
     earlier = history_of(turns or [])
@@ -232,7 +235,7 @@ async def interview_feedback(materials, lang, question, answer, history, turns=N
 
 async def interview_summary(lang, turns, materials=None):
     if not turns: raise AppError("ANSWER_EMPTY", 422)
-    b = bundle(materials or {})
+    b = bundle(materials or {}, lang)
     result, guidance, meta = await call("mock_interview", b, lang, action="finish", history=history_of(turns))
     if result.get("phase") != "summary" or not isinstance(result.get("summary"), str):
         raise AppError("AI_FORMAT", 502, "m3_summary")
