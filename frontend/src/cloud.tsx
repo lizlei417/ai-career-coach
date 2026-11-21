@@ -241,6 +241,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
       sub: { unsubscribe(): void } | undefined,
       seq = 0;
     async function update(session: Session | null, event: string) {
+      if (owner && session?.user.id === owner) return;
       const current = ++seq;
       if (!live) return;
       if (owner && session?.user.id !== owner) {
