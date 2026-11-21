@@ -33,7 +33,7 @@ export function ProductDialog({
     const focus = document.activeElement as HTMLElement | null;
     ref.current?.showModal();
     ref.current
-      ?.querySelector<HTMLElement>("input,textarea,footer button")
+      ?.querySelector<HTMLElement>("input,select,textarea,footer button")
       ?.focus();
     return () => {
       ref.current?.close();

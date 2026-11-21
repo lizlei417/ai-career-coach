@@ -12,7 +12,7 @@ function count(s: string) {
 }
 
 export default function MaterialsPanel() {
-  const { project,t, s, llm, setInputs, setLang, setMaterialsOpen, prepare, run, busy, errors, clearError, setError, inputsDirty, materialsOutdated, ready, removeSupplement } = useApp()
+  const { project,t, s, llm, setInputs, setLang, configureProfile, setMaterialsOpen, prepare, run, busy, errors, clearError, setError, inputsDirty, materialsOutdated, ready, removeSupplement } = useApp()
   const { inputs } = s
   const fileRef = useRef<HTMLInputElement>(null)
   const [preview, setPreview] = useState<Blob|null>(null)
@@ -78,6 +78,7 @@ export default function MaterialsPanel() {
       <div className="flex h-16 shrink-0 items-center justify-between px-5">
         <div className="flex items-center gap-2">
           <h2 className="text-[14px] font-semibold text-ink-900">{t('mat.title')}</h2>
+          <button className="text-[11.5px] text-accent-600" onClick={() => configureProfile()}>{s.lang === 'en' ? 'Preferences' : s.lang === 'zh-TW' ? '求職選項' : '求职选项'}</button>
           {ready && !inputsDirty && (
             <span className="inline-flex items-center gap-1 text-[11.5px] text-ok-600">
               <Check className="h-3 w-3" />

@@ -1,3 +1,4 @@
+import { requestCareerProfile } from './career-profile'
 import {publicHome,entryFeature,changeFeature,rememberLanguage} from '../cloud'
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { renameProject as renameSaved, deleteProject as deleteSaved,readProject,saveProject, type Project, type SavedProject } from './projects'
@@ -125,6 +126,7 @@ interface Ctx {
   clearError: (k: ErrKey) => void
   setError: (k: ErrKey, code: string) => void
   run: <T>(k: BusyKey, fn: () => Promise<T>) => Promise<T | undefined>
+  configureProfile: () => Promise<boolean>
   prepare: () => Promise<boolean>
   addSupplement: (text: string, note?: string) => void
   removeSupplement: (id: string) => void
@@ -256,15 +258,37 @@ export function AppProvider({ children, project, projects, select, create, renam
   const setError = useCallback((k: ErrKey, code: string) => setErrors((e) => ({ ...e, [k]: code })), [])
   const clearError = useCallback((k: ErrKey) => setErrors((e) => ({ ...e, [k]: undefined })), [])
 
+  const profileRequest = useRef<Promise<boolean> | null>(null)
+  const profileProject = useRef(project.id)
+  profileProject.current = project.id
+  const ensureProfile = useCallback(async (force = false): Promise<boolean> => {
+    if (profileRequest.current) return profileRequest.current
+    const cur = sRef.current
+    if (!force && cur.inputs.languageConfirmed && cur.inputs.userStage && cur.inputs.jobGoal) return true
+    const id = profileProject.current
+    const pending = (async () => {
+      const choice = await requestCareerProfile(cur.lang, cur.inputs)
+      if (!choice || profileProject.current !== id) return false
+      rememberLanguage(choice.lang)
+      const next = { ...sRef.current, lang: choice.lang, inputs: { ...sRef.current.inputs, languageConfirmed: true,
+        userStage: choice.userStage, jobGoal: choice.jobGoal } }
+      sRef.current = next
+      setS(next)
+      setErrors(e => Object.fromEntries(Object.entries(e).filter(([, code]) => code !== 'LANGUAGE_REQUIRED' && code !== 'PROFILE_REQUIRED')))
+      return true
+    })()
+    profileRequest.current = pending
+    try { return await pending } finally { profileRequest.current = null }
+  }, [])
+
   const run = useCallback(async <T,>(k: BusyKey, fn: () => Promise<T>) => {
     if (running.current.has(k)) return undefined
     if (!llm?.configured && k !== 'pdf' && k !== 'url') {
       setErrors(e => ({ ...e, [k]: 'LLM_NOT_CONFIGURED' }))
       return undefined
     }
-    if (k !== 'pdf' && k !== 'url' && !sRef.current.inputs.languageConfirmed) {
-      setErrors(e => ({ ...e, [k]: 'LANGUAGE_REQUIRED' })); return undefined
-    }
+    if (k !== 'pdf' && k !== 'url' && !await ensureProfile()) return undefined
+    if (running.current.has(k)) return undefined
     running.current.add(k)
     setBusy((b) => ({ ...b, [k]: true }))
     setErrors((e) => ({ ...e, [k]: undefined }))
@@ -279,7 +303,7 @@ export function AppProvider({ children, project, projects, select, create, renam
       void refreshStatus()
       setBusy((b) => ({ ...b, [k]: false }))
     }
-  }, [refreshStatus, llm])
+  }, [refreshStatus, llm, ensureProfile])
 
   const patch = useCallback((p: Partial<Persisted> | ((s: Persisted) => Partial<Persisted>)) => {
     setS((cur) => ({ ...cur, ...(typeof p === 'function' ? p(cur) : p) }))
@@ -298,10 +322,9 @@ export function AppProvider({ children, project, projects, select, create, renam
 
   /* ---------------- materials */
   const prepare = useCallback(async () => {
+    if (!await ensureProfile()) return false
     const cur = sRef.current
     const { resumeText, jdText, jobTitle } = cur.inputs
-    if (!cur.inputs.languageConfirmed) { setError('prepare', 'LANGUAGE_REQUIRED'); return false }
-    if (!cur.inputs.userStage || !cur.inputs.jobGoal) { setError('prepare', 'PROFILE_REQUIRED'); return false }
     if (!resumeText.trim()) {
       setError('prepare', 'RESUME_EMPTY')
       return false
@@ -336,8 +359,8 @@ export function AppProvider({ children, project, projects, select, create, renam
 
   /* ---------------- resume */
   const generateResume = useCallback(async () => {
+    if (!await ensureProfile()) return
     const cur = sRef.current
-    if (!cur.inputs.userStage || !cur.inputs.jobGoal) { setError('resume', 'PROFILE_REQUIRED'); return }
     if (!cur.inputs.resumeText.trim()) { setError('resume', 'RESUME_EMPTY'); return }
     if (!cur.inputs.jdText.trim()) { setError('resume', 'JD_EMPTY'); return }
     const result = await run('resume', async () => {
@@ -363,8 +386,8 @@ export function AppProvider({ children, project, projects, select, create, renam
 
   /* ---------------- match */
   const generateMatch = useCallback(async () => {
+    if (!await ensureProfile()) return
     const cur = sRef.current
-    if (!cur.inputs.userStage || !cur.inputs.jobGoal) { setError('match', 'PROFILE_REQUIRED'); return }
     if (!cur.inputs.resumeText.trim()) { setError('match', 'RESUME_EMPTY'); return }
     if (!cur.inputs.jdText.trim()) { setError('match', 'JD_EMPTY'); return }
     const result = await run('match', async () => {
@@ -380,6 +403,7 @@ export function AppProvider({ children, project, projects, select, create, renam
 
   /* ---------------- interview */
   const askQuestion = useCallback(async (target?: string) => {
+    if (!await ensureProfile()) return
     const cur = sRef.current
     if (!cur.materials) return
     const asked = cur.interview.fingerprint === cur.materials.fingerprint
@@ -413,6 +437,7 @@ export function AppProvider({ children, project, projects, select, create, renam
   }, [run, patch])
 
   const submitAnswer = useCallback(async (answer: string) => {
+    if (!await ensureProfile()) return
     const cur = sRef.current
     const turn = cur.interview.turns[cur.interview.turns.length - 1]
     if (!cur.materials || !turn) return
@@ -465,6 +490,7 @@ export function AppProvider({ children, project, projects, select, create, renam
       })
 
   const loadSummary = useCallback(async () => {
+    if (!await ensureProfile()) return
     const turns = summaryTurns()
     if (!turns.length) return
     const out = await run('summary', () => post<Summary>('/api/interview/summary', { lang: sRef.current.lang, turns, materials: bundle() }))
@@ -472,6 +498,7 @@ export function AppProvider({ children, project, projects, select, create, renam
   }, [run, patch])
 
   const endInterview = useCallback(async () => {
+    if (!await ensureProfile()) return
     patch((c) => ({ interview: { ...c.interview, status: 'ended' } }))
     await loadSummary()
   }, [patch, loadSummary])
@@ -507,6 +534,7 @@ export function AppProvider({ children, project, projects, select, create, renam
     setMaterialsOpen: (v) => patch({ materialsOpen: v }),
     setInputs: (p) => patch((c) => ({ inputs: { ...c.inputs, ...p } })),
     clearError, setError, run, prepare, addSupplement, removeSupplement,
+    configureProfile: () => ensureProfile(true),
     generateResume, setDecision, generateMatch,
     askQuestion, submitAnswer, takeFollowUp, endInterview, loadSummary, resetInterview, resumeInterview,
     refreshStatus, clearAll,
