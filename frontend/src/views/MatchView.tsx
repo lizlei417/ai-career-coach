@@ -28,7 +28,8 @@ export default function MatchView() {
   const reqs = s.materials!.requirements
   const reqMap = new Map(reqs.map((q) => [q.id, q]))
   const stale = r ? isStale(r.fingerprint) : false
-  const cats: Requirement['category'][] = ['responsibility', 'required', 'preferred']
+  const cats = ['required', 'preferred', 'responsibility', 'unspecified'] as const
+  const categoryOf = (i: MatchItem) => i.priority_code || reqMap.get(i.requirement_id)?.category
 
   return (
     <div className="space-y-5 animate-fade">
@@ -71,7 +72,7 @@ export default function MatchView() {
                 </thead>
                 <tbody>
                   {cats.map((c) => {
-                    const list = r.data.items.filter((i) => reqMap.get(i.requirement_id)?.category === c)
+                    const list = r.data.items.filter((i) => categoryOf(i) === c)
                     if (!list.length) return null
                     const n = (st: string) => list.filter((i) => i.status === st).length
                     return (
@@ -117,7 +118,7 @@ export default function MatchView() {
               <div className="border-l border-paper-200 px-5 py-2.5">{t('jm.colStatus')} · {t('jm.colNext')}</div>
             </div>
             {cats.map((c) => {
-              const list = r.data.items.filter((i) => reqMap.get(i.requirement_id)?.category === c)
+              const list = r.data.items.filter((i) => categoryOf(i) === c)
               if (!list.length) return null
               return (
                 <div key={c}>

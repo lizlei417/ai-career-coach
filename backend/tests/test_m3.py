@@ -67,7 +67,7 @@ class M3Tests(unittest.IsolatedAsyncioTestCase):
     async def test_matching_downgrades_false_student_evidence(self):
         b=await self.materials();r={'jd_quote':'Prepare campaign reports using Excel and support campus communications.','priority':'required','status':'direct','evidence_quotes':['Advanced Python certification'],'reason':'x','next_step':'Clarify skills'}
         with patch('app.m3.complete_json',AsyncMock(return_value=ok({'requirements':[r]}))):
-            out=await m3.job_match(b,'en');self.assertEqual(out['items'][0]['status'],'none');self.assertEqual(out['items'][0]['evidence'],[])
+            out=await m3.job_match(b,'en');self.assertEqual(out['items'][0]['status'],'none');self.assertEqual(out['items'][0]['evidence'],[]);self.assertEqual(out['items'][0]['priority_code'],'required')
     async def test_empty_rag_and_invalid_result(self):
         b=await self.materials()
         with patch.object(index,'search',return_value=[]),patch('app.m3.complete_json',AsyncMock(return_value=ok({'edits':[],'questions_to_student':[]}))) as model:

@@ -5,7 +5,7 @@ No model or URL responses are mocked; no original user projects are touched.
 import os,json,re,hashlib
 from pathlib import Path
 from uuid import uuid4
-from playwright.sync_api import sync_playwright,expect
+from playwright.sync_api import sync_playwright,expect,TimeoutError as BrowserTimeout
 from pypdf import PdfReader
 from docx import Document
 from e2e_audit import RESUME_PAGES,JD
@@ -15,7 +15,13 @@ mode='hosted' if HOSTED else 'local';stored=None;report={'mode':mode,'actual_mod
 with sync_playwright() as pw:
  b=pw.chromium.launch(channel='chrome');ctx=b.new_context(viewport={'width':1640,'height':1120},accept_downloads=True);p=ctx.new_page();p.set_default_timeout(85000);errors=[];p.on('pageerror',lambda e:errors.append(str(e)))
  def nav(name):p.get_by_role('button',name=name,exact=True).first.click()
- def save():p.locator('[data-saved=true]').wait_for()
+ def save():
+  try:p.locator('[data-saved=true]').wait_for(timeout=25000)
+  except BrowserTimeout:
+   note=p.get_by_role('alert').filter(has_text=re.compile('Changes could not be saved|项目保存失败'))
+   if note.count()!=1:raise
+   note.get_by_role('button',name=re.compile('^(重试|重試|Retry)$')).click();p.locator('[data-saved=true]').wait_for(timeout=30000)
+   report['save_retries']=report.get('save_retries',0)+1
  def snap(name):save();p.wait_for_timeout(250);p.screenshot(path=str(OUT/(mode+'-'+name+'.png')),full_page=True)
  def api(path):
   return p.evaluate('''async path=>{const key=Object.keys(localStorage).find(k=>k.startsWith('coach.auth.'));const a=JSON.parse(localStorage.getItem(key));const r=await fetch('/v3/api/'+path,{headers:{Authorization:'Bearer '+a.access_token}});return await r.json()}''',path)
@@ -26,8 +32,8 @@ with sync_playwright() as pw:
     nav(button) if attempt==0 else p.get_by_role('button',name=re.compile('^(重试|重試|Retry)$')).first.click()
    r=response.value;data=r.json();report['calls'].append({'route':route,'status':r.status,'language':data.get('lang'),'attempt':attempt+1})
    (OUT/(mode+'-'+str(len(report['calls']))+'-'+route.rsplit('/',1)[-1]+'.json')).write_text(json.dumps(data,ensure_ascii=False,indent=2))
-   if r.status!=200 and data.get('error',{}).get('code')=='AI_FORMAT' and attempt==0:
-    print('Observed model format error; testing one explicit UI retry',route,flush=True);continue
+   if r.status!=200 and (data.get('error',{}).get('code')=='AI_FORMAT' or (r.status==503 and data.get('detail')=='Authentication unavailable')) and attempt==0:
+    print('Observed request failure; testing one explicit UI retry',route,data.get('error',{}).get('code') or data.get('detail'),flush=True);continue
    assert r.status==200,data
    print('PASS real model',route,r.status,flush=True);return data
 

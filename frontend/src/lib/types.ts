@@ -77,6 +77,7 @@ export interface OptimizeResult {
 export type Decision = { state: 'pending' | 'adopted' | 'kept' | 'edited'; text?: string }
 
 export interface MatchItem {
+  priority_code?: "required" | "preferred" | "unspecified"
   requirement_id: string
   status: 'direct' | 'partial' | 'none' | 'unassessed'
   evidence: { id: string; text: string }[]

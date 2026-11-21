@@ -205,7 +205,7 @@ async def job_match(materials, lang):
             prior = assessed.get(q["id"])
             item = {"requirement_id": q["id"], "status": status, "evidence": ev,
                 "rationale": str(r.get("reason") or "")[:800], "next_step": {"type": "clarify", "text": str(r.get("next_step") or "")[:800]},
-                "priority": 1 if r["priority"] == "required" else 2, "verification": "downgraded" if downgraded else "ok", "jd_quote": quote}
+                "priority_code": r["priority"], "priority": {"required":1,"preferred":2,"unspecified":3}[r["priority"]], "verification": "downgraded" if downgraded else "ok", "jd_quote": quote}
             # Multiple model requirements can legitimately map to one sentence.
             # Preserve each assessment and every quote instead of last-write-wins.
             detail = {"jd_quote": quote, "priority": r["priority"], "status": status,
@@ -219,9 +219,10 @@ async def job_match(materials, lang):
                     rationale="\n".join(d["jd_quote"]+" — "+d["reason"] for d in details),
                     next_step={"type":"clarify","text":"\n".join(d["jd_quote"]+" — "+d["next_step"] for d in details)},
                     priority=min(prior["priority"], item["priority"]),
+                    priority_code="required" if any(d["priority"]=="required" for d in details) else "preferred" if any(d["priority"]=="preferred" for d in details) else "unspecified",
                     verification="downgraded" if "downgraded" in (prior["verification"],item["verification"]) else "ok")
             assessed[q["id"]] = item
-    items = [assessed.get(q["id"], {"requirement_id": q["id"], "status": "unassessed", "evidence": [], "rationale": "", "next_step": {"type": "none", "text": ""}, "priority": 3, "verification": "missing"}) for q in b["requirements"]]
+    items = [assessed.get(q["id"], {"requirement_id": q["id"], "status": "unassessed", "evidence": [], "rationale": "", "next_step": {"type": "none", "text": ""}, "priority_code": "unspecified", "priority": 3, "verification": "missing"}) for q in b["requirements"]]
     return {"items": items, "priority_order": [x["requirement_id"] for x in sorted(items, key=lambda x:x["priority"]) if x["status"] in ("partial", "none")][:5],
             "overview": "", "guidance": guidance, "lang": lang, "m3": meta}
 
