@@ -122,3 +122,61 @@ M3_HOSTED=1 "$PY" tests/m3_real_e2e.py
 匹配界面按正式返回的 required/preferred/unspecified 分组，明确必备条件先于优先条件；不再用准备阶段的粗分类覆盖模型优先级。历史结果没有 priority_code 时继续使用原来的分类显示。
 
 最终完整线上流程在 215e5bc 上通过（见 hosted-results.json）：6 次成功分析及一次被拒绝的格式响应，测试账户额度 0→7，原始 PDF 预览字节一致、双项目、三语言、导出和检索均通过。首次匹配错误的安全诊断明确为 status=ok、result=dict、citations=None；不推断早先两次总结具有相同原因。针对这一已证实的问题，最后补丁将 null/缺失 citations 仅归一为 []，记录 protocol_warnings=citations_missing，所有来源 used=false；不编造引用、不补写分析内容，也不额外调用模型。非数组引用或不合法正文仍拒绝。针对性测试证明只调用一次模型，最终补丁部署与真实抽检另见末尾。
+
+## 最终交付状态
+
+最终应用提交：`5b55d80d85a93839b9f502bd40c0895e319ef1aa`。Render 部署 `dep-dc11evec6qcc73ckagb0` 显示 **Deploy succeeded / Live**，2026-11-22 06:13:17 HKT 触发，耗时 1 分 31 秒。前一完整验收版为 `215e5bc`；最后空引用元数据补丁没有改变正式分析规则、请求任务或用户材料。
+
+严格区分验证层级：
+
+|状态|实际结果|
+|---|---|
+|代码实现|正式 Prompt、RAG、证据适配、前置选择、状态与复合要求修复完成|
+|本地最终测试|50 项单元/接口测试通过；最终补丁下强制 Mock citations=null 的完整浏览器主流程、存档、审核与导出通过|
+|完整真实线上流程|215e5bc 上完成英文优化、繁体匹配、简体提问/反馈/总结及第二项目匹配；6 次成功、1 次 null 引用导致的格式失败后手动重试；专用账户额度 0→7，未重置|
+|最后补丁线上验证|5b55d80 上另做 1 次真实匹配，HTTP 200，额度 6→7，无重试、无项目写入；旧复合要求 Q4 和 Q5 各保留两项评估。该次返回合法引用，null 分支由定向单元测试和完整 Mock E2E 验证；不声称这次真实响应也是 null|
+|最后补丁后的整套真实重跑|为避免重复消耗额度，没有再次生成全部三个功能；最后仅改空引用元数据，采用以上针对性验证|
+|部署后启动|正式原文哈希正确、18 段全部校验成功，实际检索命中 workshop-01 / workshop-02|
+|旧版本|V1、V2、Claude HTTP 200，HTML/资产引用哈希与发布前一致；V2 本地归档 92 个跟踪文件哈希均无变化。没有为旧版本重复调用模型|
+|JD 导入抽检|最终部署后 Nowcoder 200 / 347 字、Greenhouse 200 / 7276 字；本轮仅抽检接口，先前完整导入保存 E2E 见链接导入报告|
+
+完整真实流程还验证：3 页原始 PDF 从真实 Storage 下载后的字节与上传文件完全一致；两项真实优化被采纳、一项保留；最终 PDF 和 DOCX 重新解析后与完整预览一致；两份简历及不同 JD 在两个项目间反复切换、刷新后各自恢复；设置页真实检索返回来源 ID；浏览器无 pageerror。
+
+关键本地证据：
+
+- `tests/evidence/m3/hosted-results.json`、`m3-hosted-final.log`：完整真实流程、每个 HTTP 状态及额度。
+- `tests/evidence/m3/hosted-resume.png`、`hosted-match.png`、`hosted-question.png`、`hosted-feedback.png`、`hosted-summary.png`：真实结构化结果。
+- `tests/evidence/m3/hosted-final.png`、`hosted-final.pdf`、`hosted-final.docx`：完整新版简历与可打开的导出文件。
+- `tests/evidence/m3/hosted-rag-settings.png`：真实模型连接、知识库版本及检索片段。
+- `tests/evidence/m3/final-patch-verification.json`、`final-patch-match.json`、`m3-final-patch-live.log`：最后补丁单次真实验证。
+- `tests/evidence/m3-null-citations-e2e.log`、`unit-tests.log`：最终补丁的 null 引用完整 Mock E2E 与 50 项测试。
+- `tests/evidence/m3/hosted-read-checks.json`、`m3-hosted-read-latest.log`：最终启动、旧版本与真实 JD 来源抽检。
+- `tests/evidence/m3/hosted-auth-failure.json` 和 `previous-release-*-summary-error.json`：失败也保留，没有替换为通过记录。
+
+这些证据保存在本地忽略目录，未将账号、密钥、日志、PDF 或测试档案推送 Git。相关命令：
+
+```sh
+QA_NULL_CITATIONS=1 QA_DATABASE_URL=postgresql://USER@127.0.0.1:PORT/coachtest_v3_audit_NAME "$PY" tests/run_audit.py e2e_audit.py
+M3_HOSTED=1 M3_ACCOUNT_INDEX=0 "$PY" tests/m3_real_e2e.py
+# 最后单次真实抽检已执行；整理后的脚本需要显式指定专用 QA 项目：
+M3_ACCOUNT_INDEX=1 M3_QA_PROJECT='YOUR_DEDICATED_QA_PROJECT' "$PY" tests/m3_final_patch_probe.py
+```
+
+主要文件及职责：
+
+|文件|修改原因|
+|---|---|
+|backend/app/rag.py|保留 Claude 的 BM25 和简繁扩展，补原始快照、数量、重复及相关检索校验|
+|backend/app/m3.py|新接入正式系统消息、任务检索、协议校验、引用安全归一及现有 UI 结果适配|
+|backend/app/config.py、main.py|恢复启动兼容项，路由、正式材料路径、健康和只读 RAG 接口|
+|backend/app/llm.py|保留原调用/额度机制，补最后错误及真实验证时间|
+|backend/app/final_resume.py|新选项参与过期检查，同时兼容没有新字段的历史项目|
+|backend/data/m3、rag_v1|正式材料和原始证据；不放学生档案，不生成付费索引|
+|frontend/src/lib/store.tsx、types.ts|项目内选项、版本刷新、三种语言和面试状态持久化|
+|MaterialsPanel、Sidebar、SettingsView、ui.tsx|真实前置选择、模型/知识库状态、来源及检索界面；延续原设计|
+|ResumeView、MatchView、InterviewView、i18n.ts|正式字段、补充问题、精确优先级和逐轮反馈的三语显示|
+|backend/tests、tests|正式协议、完整性、复合要求、历史兼容、真实与 Mock 分离的验证|
+
+GitHub 已推送全部必要应用修改。后续测试脚本及本报告的整理提交不改变线上代码；自动部署仍为关闭。没有新增依赖、数据库迁移、生产环境变量、密钥变更、收费服务或额度规则变更。
+
+仍需注意：真实邮箱验证/重置邮件投递本轮没有重测；原语料没有详细的学校评分手册；Word 上传与 OCR 未实现，DOCX **导出已验证**。曾有一次认证可用性 503，随后恢复且没有放宽认证。模型若返回非空引用的其他非法结构或缺少分析正文，仍会明确报错而不展示假结果；文字真实性的语义判断仍需用户审核。

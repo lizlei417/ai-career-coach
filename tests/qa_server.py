@@ -82,6 +82,7 @@ class ModelTransport(httpx.AsyncBaseTransport):
             if action=='finish':result.update(phase='summary',question=None,summary='You described campaign reporting. Practise explaining your method.')
             out={'status':'ok','message':'','result':result,'citations':[]}
         else:out={'ok':True}
+        if payload.get('task') and os.environ.get('QA_NULL_CITATIONS')=='1':out['citations']=None
         return httpx.Response(200,json={'choices':[{'finish_reason':'stop','message':{'content':json.dumps(out)}}], 'usage':{'total_tokens':10}})
     async def aclose(self):await self.network.aclose()
 if os.environ.get('QA_REAL_MODEL') != '1':
