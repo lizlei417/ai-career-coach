@@ -94,8 +94,8 @@ knowledge|School guides|学校辅导指南|學校輔導指南
 refresh|Refresh status|刷新状态|重新整理狀態
 comingNext|Next question and feedback will use the selected language.|后续提问与反馈将使用当前语言。|後續提問與回饋將使用目前語言。
 retryLoad|Retry|重试|重試
-modelNotice|Configure OPENAI_API_KEY in the server’s .env to enable analysis.|请在服务端 .env 配置 OPENAI_API_KEY 以启用分析。|請於伺服器 .env 設定 OPENAI_API_KEY 以啟用分析。
-privacyShort|AI actions send the project materials and relevant answers to OpenAI.|AI 操作会将项目材料和相关回答发送至 OpenAI。|AI 操作會將專案資料及相關回答傳送至 OpenAI。
+modelNotice|Configure DEEPSEEK_API_KEY in the server’s .env to enable analysis.|请在服务端 .env 配置 DEEPSEEK_API_KEY 以启用分析。|請於伺服器 .env 設定 DEEPSEEK_API_KEY 以啟用分析。
+privacyShort|AI actions send the project materials and relevant answers to DeepSeek.|AI 操作会将项目材料和相关回答发送至 DeepSeek。|AI 操作會將專案資料及相關回答傳送至 DeepSeek。
 read|Read|已读取|已讀取
 uploaded|Uploaded PDF|已上传的 PDF|已上傳的 PDF
 pasted|Pasted text|粘贴的文本|貼上的文字

@@ -93,11 +93,14 @@ def project_for(token):
         yield p
 
 
+model_observation = {}
+
+
 def diagnostics(p=None):
     cfg = settings()
     kb = KnowledgeBase(cfg.knowledge_dir)
     return {"configured": bool(cfg.api_key), "model": cfg.model,
-            "connection": connection_state(p.observed if p else {}, cfg),
+            "connection": connection_state(model_observation, cfg),
             "guideCount": len(kb.guides), "guideFiles": sorted({g.filename for g in kb.guides}),
             "warnings": [translations(w) for w in kb.warnings]}
 
@@ -110,8 +113,8 @@ def view(p):
 
 def service(p, language):
     cfg = settings()
-    connection_state(p.observed, cfg)
-    return CareerCoach(ObservedClient(AIClient(cfg), p.observed), KnowledgeBase(cfg.knowledge_dir), LANGUAGES[language])
+    connection_state(model_observation, cfg)
+    return CareerCoach(ObservedClient(AIClient(cfg), model_observation), KnowledgeBase(cfg.knowledge_dir), LANGUAGES[language])
 
 
 def prepare(p, coach):
@@ -146,6 +149,24 @@ async def private_api(request: Request, call_next):
         response.headers["Cache-Control"] = "no-store"
     response.headers["X-Content-Type-Options"] = "nosniff"
     return response
+
+
+class ProbeResult(BaseModel):
+    ok: Literal[True]
+
+
+@app.post("/api/settings/test")
+def test_connection():
+    cfg = settings()
+    connection_state(model_observation, cfg)
+    client = AIClient(cfg)
+    try:
+        client.generate(ProbeResult, "Return JSON.", {"ok": True}, max_tokens=32)
+    except CoachError:
+        model_observation["connection_status"] = "failed"
+        raise
+    model_observation["connection_status"] = "verified"
+    return {"ok": True, "model": cfg.model, "usage": client.usage}
 
 
 @app.get("/api/bootstrap")
@@ -185,8 +206,6 @@ def checked(m):
 @app.post("/api/project")
 def create(m: Materials):
     p = Project(checked(m))
-    if settings().api_key:
-        prepare(p, service(p, m.language))
     token = secrets.token_urlsafe(32)
     with registry:
         prune()
@@ -209,10 +228,7 @@ def update(m: Materials, version: int, x_project: str = Header(default="")):
         if version != p.version:
             raise CoachError(STALE)
         if (m.resume, m.jd) != (p.materials.resume, p.materials.jd):
-            candidate = Project(m, observed=p.observed)
-            if settings().api_key:
-                prepare(candidate, service(candidate, m.language))
-            p.context, p.optimization, p.matching = candidate.context, None, None
+            p.context, p.optimization, p.matching = None, None, None
             p.decisions, p.interview = {}, new_interview()
         p.materials = m
         p.version += 1

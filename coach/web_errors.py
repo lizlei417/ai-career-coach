@@ -2,6 +2,8 @@ from coach.i18n import ERRORS, LANGUAGES, localize_error
 from coach.job_links import INVALID, UNREADABLE, UNSUPPORTED, TOO_LARGE
 
 MESSAGES = {
+    "余额不足，请充值后重启服务。": ("Insufficient balance. Top up and restart the service.", "餘額不足，請充值後重啟服務。"),
+    "输入过长，请精简材料或面试记录。": ("Shorten the materials or interview history.", "輸入過長，請精簡材料或面試記錄。"),
     INVALID: ("Enter a public HTTP or HTTPS job posting URL.", "請輸入可公開存取的 HTTP 或 HTTPS 職位連結。"),
     UNREADABLE: ("Could not read this posting. Check the URL or paste the job description.", "無法讀取職位網頁。請檢查連結，或貼上職位描述。"),
     UNSUPPORTED: ("No readable job description found. Paste the responsibilities and qualifications.", "未找到可讀取的職位說明。請貼上職責與任職要求。"),

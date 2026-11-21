@@ -8,4 +8,4 @@ fi
 if [[ ! -f frontend/dist/index.html ]]; then
   (cd frontend && npm ci && npm run build)
 fi
-exec .venv/bin/python -m uvicorn server:app --host 127.0.0.1 --port "${PORT:-8765}" --no-access-log
+exec .venv/bin/python -m uvicorn server:app --host 127.0.0.1 --port "${PORT:-8775}" --no-access-log
