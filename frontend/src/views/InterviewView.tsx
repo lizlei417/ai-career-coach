@@ -1,3 +1,4 @@
+import {confirmAction} from '../ProductDialog'
 import { ArrowRight, CircleStop, CornerDownRight, FileText, MessageSquareReply, Play, RotateCcw, Undo2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useApp } from '../lib/store'
@@ -64,7 +65,7 @@ export default function InterviewView() {
         meta={s.materials?.job_title}
         actions={
           <>
-            <Button size="sm" variant="ghost" onClick={() => { if (confirm(t('iv.resetConfirm'))) resetInterview() }} icon={<RotateCcw className="h-3.5 w-3.5" />}>{t('iv.reset')}</Button>
+            <Button size="sm" variant="ghost" onClick={async () => { if (await confirmAction(t('iv.resetConfirm'))) resetInterview() }} icon={<RotateCcw className="h-3.5 w-3.5" />}>{t('iv.reset')}</Button>
             {iv.status === 'active' ? (
               <Button size="sm" variant="secondary" disabled={!answered} onClick={endInterview} icon={<CircleStop className="h-3.5 w-3.5" />}>{t('iv.end')}</Button>
             ) : (

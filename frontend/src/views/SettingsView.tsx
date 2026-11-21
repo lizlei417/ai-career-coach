@@ -1,5 +1,6 @@
+import PersonalQuota from '../PersonalQuota'
+import {confirmAction,showNotice} from '../ProductDialog'
 import { eraseProjects } from '../lib/projects'
-import { cloudJson } from '../cloud'
 import { FileUp, Search, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { ApiError, del, get, post, upload } from '../lib/api'
@@ -158,25 +159,18 @@ function PromptSection() {
 }
 
 function PrivacySection(){
-  const {s,busy,saving}=useApp()
+  const {s,busy,saving,reloadProjects}=useApp()
   const text=s.lang==='en'
-    ? ['Delete my data','Delete all your V2 projects, PDFs, résumé text, job descriptions, analyses and interview records?','Permanently delete these data now?','Deletion incomplete. Retry.','Deleted projects / PDFs','Daily AI calls remaining','Site remaining','Billing paused']
+    ? ['Delete my data','Delete all your V2 projects, PDFs, résumé text, job descriptions, analyses and interview records?','Permanently delete these data now?','Deletion incomplete. Retry.','Deleted projects / PDFs']
     : s.lang==='zh-TW'
-    ? ['清除我的資料','刪除你在 V2 的全部專案、PDF、履歷、職位描述、分析與面試記錄？','再次確認永久刪除？','未完成刪除，請重試。','已刪除專案 / PDF','今日剩餘 AI 次數','全站剩餘','付費請求已暫停']
-    : ['清除我的数据','删除你在 V2 的全部项目、PDF、简历文本、JD、分析结果与面试记录？','再次确认永久删除这些数据？','未完成删除，请重试。','已删除项目 / PDF','今日剩余 AI 次数','全站剩余','付费请求已暂停']
-  const [q,setQ]=useState<{remaining:number;limit:number;siteRemaining:number;blocked:boolean}>()
+    ? ['清除我的資料','刪除你在 V2 的全部專案、PDF、履歷、職位描述、分析與面試記錄？','再次確認永久刪除？','未完成刪除，請重試。','已刪除專案 / PDF']
+    : ['清除我的数据','删除你在 V2 的全部项目、PDF、简历文本、JD、分析结果与面试记录？','再次确认永久删除这些数据？','未完成删除，请重试。','已删除项目 / PDF']
   const [working,setWorking]=useState(false),[failed,setFailed]=useState(false)
-  useEffect(()=>{
-    let active=true
-    const update=()=>{cloudJson('/api/quota').then(v=>{if(active)setQ(v)}).catch(()=>{if(active)setQ(undefined)})}
-    update();window.addEventListener('quota-update',update)
-    return ()=>{active=false;window.removeEventListener('quota-update',update)}
-  },[])
-  return <><Section title={text[5]}><p>{q? q.remaining+' / '+q.limit+' · '+text[6]+' '+q.siteRemaining:'—'} {q?.blocked&&text[7]}</p></Section>
+  return <><PersonalQuota lang={s.lang}/>
     <Section title={text[0]}><Button variant="danger" disabled={working||saving||Object.values(busy).some(Boolean)} onClick={async()=>{
-      if(!confirm(text[1])||!confirm(text[2]))return
+      if(!await confirmAction(text[1])||!await confirmAction(text[2]))return
       setWorking(true);setFailed(false)
-      try{const r=await eraseProjects();alert(text[4]+' · '+r.deletedProjects+' / '+r.deletedDocuments);location.reload()}
+      try{const r=await eraseProjects();await showNotice(text[4]+' · '+r.deletedProjects+' / '+r.deletedDocuments);await reloadProjects()}
       catch{setFailed(true);setWorking(false)}
     }}>{text[0]}</Button>{failed&&<p role="alert">{text[3]}</p>}</Section></>
 }

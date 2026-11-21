@@ -3,7 +3,7 @@ services:
     name: career-coach-three-versions
     runtime: docker
     plan: free
-    branch: feature/v2-auth-deploy
+    branch: codex/v2-projects-shared-quota
     dockerfilePath: ./Dockerfile
     healthCheckPath: /healthz
     autoDeployTrigger: "off"
@@ -18,7 +18,5 @@ services:
         sync: false
       - key: DATABASE_URL
         sync: false
-      - key: V2_DAILY_LIMIT
-        value: "5"
-      - key: SITE_DAILY_LIMIT
-        value: "20"
+      - key: ACCOUNT_DAILY_LIMIT
+        value: "10"

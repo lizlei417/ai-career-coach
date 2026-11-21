@@ -1,6 +1,6 @@
 import {publicHome,entryFeature,changeFeature} from '../cloud'
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { saveProject, type Project, type SavedProject } from './projects'
+import { renameProject as renameSaved, deleteProject as deleteSaved,readProject,saveProject, type Project, type SavedProject } from './projects'
 import { ApiError, get, post } from './api'
 import { errorKey, translate, type TKey } from './i18n'
 import type {
@@ -87,6 +87,10 @@ interface Ctx {
   project: Project
   projects: Project[]
   changeProject: (value: string, create?: boolean) => Promise<void>
+  renameProject: (id:string,name:string)=>Promise<void>
+  deleteProject: (id:string)=>Promise<void>
+  reloadProjects:()=>Promise<void>
+  pendingProject:string
   switching: boolean
   saving: boolean
   saveFailed: boolean
@@ -132,10 +136,12 @@ interface Ctx {
 const AppCtx = createContext<Ctx | null>(null)
 
 type ProjectAction = (value: string, lang: Lang) => Promise<void>
-export function AppProvider({ children, project, projects, select, create }: {
-  children: ReactNode; project: SavedProject; projects: Project[]; select: ProjectAction; create: ProjectAction
+export function AppProvider({ children, project, projects, select, create, renamed, removed, reload }: {
+  children: ReactNode; project: SavedProject; projects: Project[]; select: ProjectAction; create: ProjectAction;renamed:(id:string,name:string,revision:number)=>void;removed:ProjectAction;reload:()=>Promise<void>
 }) {
   const [s, setS] = useState<Persisted>({...project.state,feature:entryFeature(project.state.feature)})
+  const [activeId,setActiveId]=useState(project.id)
+  const [pendingProject,setPendingProject]=useState('')
   const [switching, setSwitching] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveFailed, setSaveFailed] = useState(false)
@@ -146,15 +152,29 @@ export function AppProvider({ children, project, projects, select, create }: {
   const sRef = useRef(s)
   sRef.current = s
 
+  const lastSaved=useRef(s)
   const revision = useRef(project.revision)
   const pendingSave = useRef(Promise.resolve())
+  const projectName=useRef(project.name)
+  projectName.current=project.name
+  if(activeId!==project.id){
+    setActiveId(project.id)
+    const next={...project.state,feature:entryFeature(s.feature)}
+    lastSaved.current=next
+    setS(next)
+    revision.current=project.revision
+    setErrors({});setSaveFailed(false);setSaving(false)
+  }
   useLayoutEffect(() => {
+    if(!project.id||lastSaved.current===s)return
+    lastSaved.current=s
     let current = true
     setSaving(true)
     const guard = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = '' }
     window.addEventListener('beforeunload', guard)
+    const name=projectName.current
     const write = pendingSave.current.catch(() => {}).then(async () => {
-      revision.current = await saveProject({ id: project.id, name: project.name, revision: revision.current, state: s })
+      revision.current = await saveProject({ id: project.id, name, revision: revision.current, state: s })
     })
     pendingSave.current = write
     function finish(failed: boolean) {
@@ -165,19 +185,37 @@ export function AppProvider({ children, project, projects, select, create }: {
     }
     write.then(() => finish(false), () => finish(true))
     return () => { current = false; window.removeEventListener('beforeunload', guard) }
-  }, [project.id, project.name, s])
+  }, [project.id, s])
 
   async function changeProject(value: string, isNew = false) {
     if (switching || Object.values(busy).some(Boolean)) return
     setSwitching(true)
+    setPendingProject(isNew?'':value)
     try {
       await pendingSave.current
       await (isNew ? create : select)(value, s.lang)
     } catch {
       setSaveFailed(true)
+      throw Error('Project operation failed')
     } finally {
+      setPendingProject('')
       setSwitching(false)
     }
+  }
+
+  async function renameProject(id:string,name:string){
+    if(switching||Object.values(busy).some(Boolean))throw Error('Busy')
+    await pendingSave.current
+    const record=id===project.id?{revision:revision.current}:await readProject(id)
+    const result=await renameSaved(id,name.trim(),record.revision)
+    if(id===project.id)revision.current=result.revision
+    renamed(id,result.name,result.revision)
+  }
+  async function deleteProject(id:string){
+    if(switching||Object.values(busy).some(Boolean))throw Error('Busy')
+    await pendingSave.current
+    await deleteSaved(id)
+    await removed(id,s.lang)
   }
 
   useEffect(()=>{const update=()=>setS(cur=>({...cur,feature:entryFeature(cur.feature)}));window.addEventListener('popstate',update);return ()=>window.removeEventListener('popstate',update)},[])
@@ -402,7 +440,7 @@ export function AppProvider({ children, project, projects, select, create }: {
   }, [])
 
   const value: Ctx = {
-    project, projects, switching, changeProject, saving, saveFailed,
+    project, projects, switching, changeProject, saving, saveFailed,renameProject,deleteProject,reloadProjects:reload,pendingProject,
     setDraft: (id, value) => patch(c => ({ drafts: { ...c.drafts, [id]: value } })),
     s, t, busy, errors, llm, kb, inputsDirty, ready, isStale, supKey,
     setLang: (l) => patch({ lang: l }),

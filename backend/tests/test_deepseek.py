@@ -22,6 +22,8 @@ class DeepSeekRoutes(unittest.TestCase):
         self.use(patch.object(cloud,"verify",return_value=("00000000-0000-4000-8000-000000000001",False)))
         self.use(patch.object(cloud,"reserve_call",return_value=1))
         self.use(patch.object(cloud,"record_usage"))
+        self.use(patch.object(cloud,"dispatch_call"))
+        self.use(patch.object(cloud,"cancel_unsent"))
         self.reply = {}
         self.status = 200
         self.calls = 0

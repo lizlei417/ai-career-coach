@@ -73,11 +73,11 @@ def reserve(lib,uid):
         assert e.status_code==429
         return 0
 with ThreadPoolExecutor(max_workers=9) as pool:
-    assert sum(pool.map(lambda _:reserve(v2,a),range(14)))==5
-    assert sum(pool.map(lambda i:reserve(claude if i%2 else v1,b),range(24)))==15
+    assert sum(pool.map(lambda _:reserve(v2,a),range(14)))==10
+    assert sum(pool.map(lambda i:reserve(claude if i%2 else v1,b),range(24)))==10
 for i in range(3):
     r=req('GET','/v2/api/quota','A').json()
-    assert r=={'remaining':0,'limit':5,'siteRemaining':0,'blocked':False},r
+    assert r=={'remaining':0,'limit':10,'used':10,'blocked':False},r
 assert req('GET','/v2/api/workspaces/demo','A').status_code==200
 fault=True
 assert req('DELETE','/v2/api/my-data','A').status_code==502
@@ -97,4 +97,4 @@ for _,lib in apps:
     lib.identity.set(a)
     try:lib.reserve_call();raise AssertionError()
     except HTTPException as e:assert e.status_code==402
-print('PASS: three mounted applications, signed-out/nonmember access, A/B ownership, write conflicts, PDFs, concurrent 5+15 quotas, partial-delete retry, cross-version preservation, 402 latch')
+print('PASS: three mounted applications, signed-out/nonmember access, A/B ownership, write conflicts, PDFs, concurrent ten-per-account quotas, partial-delete retry, cross-version preservation, 402 latch')
