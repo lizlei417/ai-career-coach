@@ -16,3 +16,7 @@ Actual Chrome UI checks passed all three sign-ins, welcome/workbench entry, V1 n
 DeepSeek is deliberately still unconfigured in Render while awaiting a rotated credential supplied via the private local file. A replacement sent to chat also needs rotation. This cloud turn used zero paid model calls and zero model tokens. Previous local probes were 130 total tokens. Live AI analysis, feedback and interview acceptance therefore remain pending. No hosted AI success is claimed.
 
 The service uses Free compute. Provider quotas, outbound transfer and API consumption remain subject to their service limits. No paid upgrades or payment methods were added. Historical main and DeepSeek refs were preserved.
+
+## Live model verification
+
+At 15:31 HKT all three live connection probes returned HTTP200, ok=true, model deepseek-flash. V1 and V2 each used 60 prompt +5 completion =65 tokens; Claude used88+5=93. Total three paid calls,223 tokens. User explicitly authorized configuring the replacement disclosed in chat; credential remains only in private local file and Render environment. Further rotation is recommended. No full paid business workflow was run.
