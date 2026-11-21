@@ -11,7 +11,7 @@ import type {
 
 export interface Inputs {
   resumeText: string
-  resumeFile: { name: string; pages: number; blob?: Blob } | null
+  resumeFile: { name: string; pages: number; fileId?: string } | null
   jobTitle: string
   jdText: string
   jdUrl: string
@@ -46,8 +46,6 @@ export interface Persisted {
   interview: InterviewState
 }
 
-const STORAGE = import.meta.env.VITE_PAGES_DEMO === '1' ? 'pages.codex.v1' : 'aicc.v1'
-const storage = import.meta.env.VITE_PAGES_DEMO === '1' ? sessionStorage : localStorage
 const emptyInputs: Inputs = { resumeText: '', resumeFile: null, jobTitle: '', jdText: '', jdUrl: '', jdFromUrl: false }
 const emptyInterview: InterviewState = { status: 'idle', turns: [], summary: null, fingerprint: '' }
 
@@ -64,17 +62,6 @@ export const initial: Persisted = {
   resume: null,
   match: null,
   interview: emptyInterview,
-}
-
-export function loadLegacy(): Persisted {
-  try {
-    const raw = storage.getItem(STORAGE)
-    if (!raw) return initial
-    const p = JSON.parse(raw)
-    return { ...initial, ...p, inputs: { ...emptyInputs, ...(p.inputs || {}) }, interview: { ...emptyInterview, ...(p.interview || {}) } }
-  } catch {
-    return initial
-  }
 }
 
 export function keyOf(i: Pick<Inputs, 'resumeText' | 'jdText' | 'jobTitle'>): string {

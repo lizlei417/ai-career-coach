@@ -1,55 +1,31 @@
+import { cloudJson, ownerKey } from '../cloud'
 import type { Persisted } from './store'
 
-export interface Project { id: string; name: string }
-export interface SavedProject extends Project { state: Persisted; revision: number }
+export interface Project { id:string; name:string }
+export interface SavedProject extends Project { state:Persisted; revision:number }
 
-const namespace = import.meta.env.VITE_PAGES_DEMO === '1' ? 'codex-demo-v2' : 'codex-v2'
-const activeKey = namespace + '.active'
-let connection: Promise<IDBDatabase> | undefined
-function database() {
-  if (!connection) connection = new Promise<IDBDatabase>((resolve, reject) => {
-    const req = indexedDB.open(namespace, 1)
-    req.onupgradeneeded = () => req.result.createObjectStore('projects', { keyPath: 'id' }).createIndex('name', 'name')
-    req.onsuccess = () => resolve(req.result)
-    req.onerror = () => reject(req.error)
-  })
-  return connection
+let clearing=false
+const writes=new Set<Promise<number>>()
+export function saveProject(project:SavedProject):Promise<number>{
+  if(clearing)return Promise.reject(Error('Deleting workspace'))
+  const write=cloudJson('/api/workspaces/'+encodeURIComponent(project.id),{
+    method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(project)
+  }).then(({revision})=>revision as number)
+  writes.add(write)
+  write.then(()=>writes.delete(write),()=>writes.delete(write))
+  return write
 }
-export async function saveProject(project: SavedProject) {
-  const db = await database()
-  return new Promise<number>((resolve, reject) => {
-    const tx = db.transaction('projects', 'readwrite')
-    const store = tx.objectStore('projects')
-    const check = store.get(project.id)
-    check.onsuccess = () => {
-      if ((check.result?.revision ?? 0) !== project.revision) { tx.abort(); return }
-      store.put({ ...project, revision: project.revision + 1 })
-    }
-    tx.oncomplete = () => resolve(project.revision + 1)
-    tx.onabort = () => reject(tx.error)
-  })
+export const readProject=(id:string):Promise<SavedProject>=>cloudJson('/api/workspaces/'+encodeURIComponent(id))
+export const listProjects=():Promise<Project[]>=>cloudJson('/api/workspaces')
+export const lastProject=()=>sessionStorage.getItem(ownerKey('active'))
+export const rememberProject=(id:string)=>sessionStorage.setItem(ownerKey('active'),id)
+export async function eraseProjects(){
+  clearing=true
+  try{
+    await Promise.allSettled(Array.from(writes))
+    const result=await cloudJson('/api/my-data',{method:'DELETE'})
+    if((await listProjects()).length)throw Error('Deletion incomplete')
+    sessionStorage.removeItem(ownerKey('active'))
+    return result as {deletedProjects:number;deletedDocuments:number}
+  }catch(e){clearing=false;throw e}
 }
-export async function readProject(id: string) {
-  const db = await database()
-  return new Promise<SavedProject>((resolve, reject) => {
-    const req = db.transaction('projects').objectStore('projects').get(id)
-    req.onsuccess = () => req.result ? resolve(req.result) : reject(new Error('Missing project'))
-    req.onerror = () => reject(req.error)
-  })
-}
-export async function listProjects(): Promise<Project[]> {
-  const db = await database()
-  return new Promise((resolve, reject) => {
-    const projects: Project[] = []
-    const req = db.transaction('projects').objectStore('projects').index('name').openKeyCursor()
-    req.onerror = () => reject(req.error)
-    req.onsuccess = () => {
-      const cursor = req.result
-      if (!cursor) return resolve(projects)
-      projects.push({ id: String(cursor.primaryKey), name: String(cursor.key) })
-      cursor.continue()
-    }
-  })
-}
-export const lastProject = () => localStorage.getItem(activeKey)
-export const rememberProject = (id: string) => localStorage.setItem(activeKey, id)

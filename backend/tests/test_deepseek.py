@@ -6,7 +6,7 @@ from unittest.mock import patch
 import httpx
 from fastapi.testclient import TestClient
 from app.main import app
-from app import llm
+from app import llm, cloud
 
 MATERIAL = {"resume_lines":[{"id":"R1","text":"Mapped student feedback.","heading":False,"section":""}],
             "jd_lines":[{"id":"J1","text":"Map feedback."}],
@@ -18,7 +18,10 @@ class DeepSeekRoutes(unittest.TestCase):
         self.addCleanup(patcher.stop)
 
     def setUp(self):
-        self.client = TestClient(app)
+        self.client = TestClient(app,headers={"Authorization":"Bearer test-only"})
+        self.use(patch.object(cloud,"verify",return_value=("00000000-0000-4000-8000-000000000001",False)))
+        self.use(patch.object(cloud,"reserve_call",return_value=1))
+        self.use(patch.object(cloud,"record_usage"))
         self.reply = {}
         self.status = 200
         self.calls = 0

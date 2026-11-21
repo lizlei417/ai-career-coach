@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import App from '../App'
-import { AppProvider, initial, loadLegacy } from '../lib/store'
+import { AppProvider, initial } from '../lib/store'
 import { lastProject, listProjects, readProject, rememberProject, saveProject, type Project, type SavedProject } from '../lib/projects'
 
 async function openWorkspace() {
@@ -9,7 +9,7 @@ async function openWorkspace() {
     const id = projects.find(p => p.id === lastProject())?.id || projects[0].id
     return { projects, current: await readProject(id) }
   }
-  const state = loadLegacy()
+  const state = initial
   const project = { id: 'first-project', name: state.lang === 'en' ? 'My first project' : state.lang === 'zh-TW' ? '我的第一個專案' : '我的第一个项目' }
   const current = { ...project, state, revision: 0 }
   try { current.revision = await saveProject(current) }
