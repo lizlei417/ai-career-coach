@@ -24,7 +24,7 @@ def auth(req):
     assert req.url.path=='/auth/v1/user'
     who=req.headers['authorization'].split()[-1]
     if who not in members:return httpx.Response(401)
-    return httpx.Response(200,json={'id':members[who],'app_metadata':{'coach_member':who!='guest'}})
+    return httpx.Response(200,json={'id':members[who],'email_confirmed_at':'2026-11-21T00:00:00Z' if who!='guest' else None,'app_metadata':{}})
 objects={}
 fault=False
 def storage(method,path,data=None):

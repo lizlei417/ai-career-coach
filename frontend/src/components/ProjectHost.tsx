@@ -1,3 +1,4 @@
+import {authLanguage} from '../cloud'
 import { useEffect, useState } from 'react'
 import App from '../App'
 import { AppProvider, initial } from '../lib/store'
@@ -7,9 +8,11 @@ async function openWorkspace() {
   const projects = await listProjects()
   if (projects.length) {
     const id = projects.find(p => p.id === lastProject())?.id || projects[0].id
-    return { projects, current: await readProject(id) }
+    const current=await readProject(id)
+    current.state.lang=authLanguage
+    return {projects,current}
   }
-  const state = initial
+  const state = {...initial,lang:authLanguage}
   const project = { id: 'first-project', name: state.lang === 'en' ? 'My first project' : state.lang === 'zh-TW' ? '我的第一個專案' : '我的第一个项目' }
   const current = { ...project, state, revision: 0 }
   try { current.revision = await saveProject(current) }

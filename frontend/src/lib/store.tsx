@@ -1,3 +1,4 @@
+import {publicHome,entryFeature,changeFeature} from '../cloud'
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { saveProject, type Project, type SavedProject } from './projects'
 import { ApiError, get, post } from './api'
@@ -134,7 +135,7 @@ type ProjectAction = (value: string, lang: Lang) => Promise<void>
 export function AppProvider({ children, project, projects, select, create }: {
   children: ReactNode; project: SavedProject; projects: Project[]; select: ProjectAction; create: ProjectAction
 }) {
-  const [s, setS] = useState<Persisted>(project.state)
+  const [s, setS] = useState<Persisted>({...project.state,feature:entryFeature(project.state.feature)})
   const [switching, setSwitching] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveFailed, setSaveFailed] = useState(false)
@@ -178,6 +179,8 @@ export function AppProvider({ children, project, projects, select, create }: {
       setSwitching(false)
     }
   }
+
+  useEffect(()=>{const update=()=>setS(cur=>({...cur,feature:entryFeature(cur.feature)}));window.addEventListener('popstate',update);return ()=>window.removeEventListener('popstate',update)},[])
 
   useEffect(() => {
     document.documentElement.lang = s.lang
@@ -404,8 +407,8 @@ export function AppProvider({ children, project, projects, select, create }: {
     s, t, busy, errors, llm, kb, inputsDirty, ready, isStale, supKey,
     setLang: (l) => patch({ lang: l }),
     enter: () => patch({ entered: true }),
-    leave: () => patch({ entered: false }),
-    setFeature: (f) => patch({ feature: f }),
+    leave: publicHome,
+    setFeature: (f) => {changeFeature(f);patch({feature:f})},
     setMaterialsOpen: (v) => patch({ materialsOpen: v }),
     setInputs: (p) => patch((c) => ({ inputs: { ...c.inputs, ...p } })),
     clearError, setError, run, prepare, addSupplement, removeSupplement,

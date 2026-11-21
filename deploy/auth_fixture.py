@@ -5,7 +5,7 @@ from fastapi import FastAPI,Request,HTTPException,Response
 from fastapi.middleware.cors import CORSMiddleware
 app=FastAPI()
 app.add_middleware(CORSMiddleware,allow_origins=["http://127.0.0.1:28549"],allow_methods=["*"],allow_headers=["*"])
-users={email:dict(id=str(uuid4()),email=email,aud="authenticated",role="authenticated",app_metadata={"coach_member":True},user_metadata={},created_at="2025-01-01T00:00:00Z") for email in ["a@example.test","b@example.test"]}
+users={email:dict(id=str(uuid4()),email=email,aud="authenticated",role="authenticated",app_metadata={},user_metadata={},email_confirmed_at="2025-01-01T00:00:00Z",created_at="2025-01-01T00:00:00Z") for email in ["a@example.test","b@example.test"]}
 pw={e:"fixture-password" for e in users}
 tokens={}
 objects={}
