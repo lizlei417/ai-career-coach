@@ -1,3 +1,4 @@
+import {publicHome,authLanguage,entryFeature,changeFeature} from '../cloud'
 import {savedState,saveState,clearWorkspace} from '../cloud'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ApiError, get, post } from './api'
@@ -49,9 +50,9 @@ const emptyInputs: Inputs = { resumeText: '', resumeFile: null, jobTitle: '', jd
 const emptyInterview: InterviewState = { status: 'idle', turns: [], summary: null, fingerprint: '' }
 
 const initial: Persisted = {
-  lang: 'zh-CN',
+  lang: authLanguage,
   entered: false,
-  feature: 'overview',
+  feature: entryFeature('overview'),
   materialsOpen: true,
   inputs: emptyInputs,
   inputsKey: '',
@@ -66,7 +67,7 @@ function load(): Persisted {
   try {
     const p=savedState
     if(!p)return initial
-    return { ...initial, ...p, inputs: { ...emptyInputs, ...(p.inputs || {}) }, interview: { ...emptyInterview, ...(p.interview || {}) } }
+    return { ...initial, ...p,lang:authLanguage,feature:entryFeature(p.feature), inputs: { ...emptyInputs, ...(p.inputs || {}) }, interview: { ...emptyInterview, ...(p.interview || {}) } }
   } catch {
     return initial
   }
@@ -143,6 +144,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void saveState(s).catch(()=>{})
   }, [s])
+
+  useEffect(()=>{const update=()=>setS(cur=>({...cur,feature:entryFeature(cur.feature)}));window.addEventListener('popstate',update);return ()=>window.removeEventListener('popstate',update)},[])
 
   useEffect(() => {
     document.documentElement.lang = s.lang
@@ -368,8 +371,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     s, t, busy, errors, llm, kb, inputsDirty, ready, isStale, supKey,
     setLang: (l) => patch({ lang: l }),
     enter: () => patch({ entered: true }),
-    leave: () => patch({ entered: false }),
-    setFeature: (f) => patch({ feature: f }),
+    leave: publicHome,
+    setFeature: (f) => {changeFeature(f);patch({feature:f})},
     setMaterialsOpen: (v) => patch({ materialsOpen: v }),
     setInputs: (p) => patch((c) => ({ inputs: { ...c.inputs, ...p } })),
     clearError, setError, run, prepare, addSupplement, removeSupplement,

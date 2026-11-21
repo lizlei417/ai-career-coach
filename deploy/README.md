@@ -1,3 +1,9 @@
+# Public entry update
+
+The current increment exposes the existing landing design before authentication. Get started opens Log in / Sign up. A confirmed Supabase email account can access its private workspace without an invite marker. Administrator guide management still requires server-controlled app_metadata.coach_admin=true. Owner/application RLS and private Storage remain unchanged.
+
+Routes are relative to each app base. /login, /signup, /forgot-password, /auth/callback and /reset-password implement authentication; /workspace and its feature paths require a verified session. Supabase redirect allowlists must include each version base. Public registration requires confirmed email and a working custom SMTP provider. CAPTCHA was omitted at the user's explicit request. Supabase authentication rate limits remain enabled. AI_REQUESTS_ENABLED=false is a server-only emergency switch stopping all new model requests. The existing shared daily request ledger remains authoritative.
+
 # Private cloud integration
 
 This branch preserves the existing application and adds invite-only Supabase authentication and private persistence. The archived main and GitHub Pages deployment remain independently recoverable.

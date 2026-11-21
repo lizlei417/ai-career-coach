@@ -3,15 +3,12 @@ import MaterialsPanel from './components/MaterialsPanel'
 import Sidebar from './components/Sidebar'
 import { useApp } from './lib/store'
 import InterviewView from './views/InterviewView'
-import Landing from './views/Landing'
 import MatchView from './views/MatchView'
 import Overview from './views/Overview'
 import ResumeView from './views/ResumeView'
 import SettingsView from './views/SettingsView'
 
 export default function App() {
-  const { s } = useApp()
-  if (!s.entered) return <Landing />
   return <Workspace />
 }
 
