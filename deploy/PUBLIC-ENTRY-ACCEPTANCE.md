@@ -14,7 +14,7 @@ The existing Render Free service deployed successfully. The Docker build pins V1
 
 Public signup is enabled, email confirmation required and anonymous sign-in disabled. Passwords require 10 characters with upper/lowercase and digits. App-scoped redirect patterns cover /v1/**, /v2/** and /claude/** on the actual HTTPS domain. Brevo Free SMTP is configured server-side. One real external QQ mailbox registered through the production signup form. Brevo recorded Sent, Delivered and Opened. The user confirmed the email; an actual password login and Supabase email_confirmed_at verified completion. The account has no coach_member or coach_admin marker. It successfully logged into all three production workbenches.
 
-CAPTCHA is deliberately disabled at the user's explicit instruction. Existing Supabase authentication rate limits remain active, including 30 signup/signin requests per 5 minutes per IP and 60 seconds minimum between emails to one user. This does not eliminate account-farming risk. A second newly registered real mailbox was not provided: cross-user live tests used the newly public account and one existing real Auth QA account, not two newly public accounts.
+CAPTCHA is deliberately disabled at the user's explicit instruction. Existing Supabase authentication rate limits remain active, including 30 emails per hour, 30 signup/signin requests per 5 minutes per IP and 60 seconds minimum between emails to one user. This does not eliminate account-farming risk. A second newly registered real mailbox was not provided: cross-user live tests used the newly public account and one existing real Auth QA account, not two newly public accounts.
 
 ## Live checks
 
@@ -31,4 +31,4 @@ The earlier hosted connection verification made three DeepSeek calls, 223 total 
 
 ## Remaining verification
 
-Password-reset email was requested successfully through the production V2 form. End-to-end user-selected password completion is pending the user's action. A second self-registered mailbox is needed to specifically claim two-new-public-user acceptance. No CAPTCHA is expected. Email delivery uses a free sender relay, not a purchased custom domain; broader mailbox deliverability has only been demonstrated for the supplied mailbox.
+Password-reset email was requested successfully through the production V2 form and Brevo recorded Delivered. The user completed the reset with a private, user-selected password. A final real Auth request verified that the obsolete generated password is rejected (invalid_credentials); it was removed from the local QA file. The new password was never supplied to the agent. A second self-registered mailbox is needed to specifically claim two-new-public-user acceptance. No CAPTCHA is expected. Email delivery uses a free sender relay, not a purchased custom domain; broader mailbox deliverability has only been demonstrated for the supplied mailbox.
