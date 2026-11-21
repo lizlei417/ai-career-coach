@@ -1,5 +1,5 @@
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parent.parent
 
 @dataclass(frozen=True)
 class Settings:
-    api_key: str
+    api_key: str = field(repr=False)
     model: str
     timeout: float
     max_tokens: int
