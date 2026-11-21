@@ -1,5 +1,7 @@
 # Cloud deployment status — 2026-11-21
 
+The historical deployment observations below are retained for audit. The current public-entry deployment is described in PUBLIC-ENTRY-ACCEPTANCE.md; it supersedes the initial invite-only and unconfigured-model observations.
+
 Live gateway https://ai-career-coach-three-versions.onrender.com
 
 Independent entrances /v1/, /v2/, /claude/.
