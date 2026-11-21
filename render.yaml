@@ -6,7 +6,7 @@ services:
     branch: feature/v2-auth-deploy
     dockerfilePath: ./Dockerfile
     healthCheckPath: /healthz
-    autoDeployTrigger: off
+    autoDeployTrigger: "off"
     envVars:
       - key: DEEPSEEK_API_KEY
         sync: false
