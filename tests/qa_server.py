@@ -79,6 +79,7 @@ class ModelTransport(httpx.AsyncBaseTransport):
             action=payload['interview_action'];answer=payload.get('answer_text','')
             result={'phase':'question','question':'How did you prepare the campaign reports?','feedback':None,'summary':None}
             if action=='respond':result.update(feedback={'answer_quote':answer,'strength':'You described your actions.','next_try':'Explain your method.'},question='How did you collect attendee feedback?')
+            if action=='respond' and control.get('follow_up'):result.update(phase='follow_up',question='What reporting method did you use?')
             if action=='finish':result.update(phase='summary',question=None,summary='You described campaign reporting. Practise explaining your method.')
             out={'status':'ok','message':'','result':result,'citations':[]}
         else:out={'ok':True}
