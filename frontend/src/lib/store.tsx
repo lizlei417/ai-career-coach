@@ -216,6 +216,10 @@ export function AppProvider({ children, project, projects, select, create }: {
   const clearError = useCallback((k: ErrKey) => setErrors((e) => ({ ...e, [k]: undefined })), [])
 
   const run = useCallback(async <T,>(k: BusyKey, fn: () => Promise<T>) => {
+    if (!llm?.configured && k !== 'pdf' && k !== 'url') {
+      setErrors(e => ({ ...e, [k]: 'LLM_NOT_CONFIGURED' }))
+      return undefined
+    }
     setBusy((b) => ({ ...b, [k]: true }))
     setErrors((e) => ({ ...e, [k]: undefined }))
     try {
@@ -223,12 +227,12 @@ export function AppProvider({ children, project, projects, select, create }: {
     } catch (e) {
       const code = e instanceof ApiError ? e.code : 'unknown'
       if (code !== 'ABORTED') setErrors((er) => ({ ...er, [k]: code }))
-      if (code === 'LLM_NOT_CONFIGURED' || code === 'LLM_AUTH') refreshStatus()
       return undefined
     } finally {
+      void refreshStatus()
       setBusy((b) => ({ ...b, [k]: false }))
     }
-  }, [refreshStatus])
+  }, [refreshStatus, llm])
 
   const patch = useCallback((p: Partial<Persisted> | ((s: Persisted) => Partial<Persisted>)) => {
     setS((cur) => ({ ...cur, ...(typeof p === 'function' ? p(cur) : p) }))

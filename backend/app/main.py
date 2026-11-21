@@ -5,13 +5,12 @@ import logging
 from typing import Any, Literal, Optional
 
 from fastapi import FastAPI, File, Request, UploadFile
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from . import coach, errors
-from .config import FRONTEND_DIST, MAX_TEXT_CHARS, MAX_UPLOAD_BYTES, allow_runtime_config, clear_api_key, get_settings, update_settings
+from .config import FRONTEND_DIST, MAX_TEXT_CHARS, MAX_UPLOAD_BYTES, get_settings
 from .errors import AppError
 from .kb import kb
 from .llm import ping
@@ -21,7 +20,12 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 log = logging.getLogger("coach.api")
 
 app = FastAPI(title="AI Career Coach API", version="1.0.0")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+@app.middleware("http")
+async def local_writes(request, call_next):
+    origin = request.headers.get("origin")
+    if request.method != "GET" and origin and origin != str(request.base_url).rstrip("/"):
+        return JSONResponse(status_code=403, content={"error": {"code": "BAD_REQUEST"}})
+    return await call_next(request)
 
 Lang = Literal["zh-CN", "zh-TW", "en"]
 
@@ -72,14 +76,6 @@ class UrlReq(BaseModel):
     url: str
 
 
-class SettingsReq(BaseModel):
-    provider: Optional[Literal["openai", "anthropic"]] = None
-    model: Optional[str] = Field(default=None, max_length=120)
-    base_url: Optional[str] = Field(default=None, max_length=300)
-    api_key: Optional[str] = Field(default=None, max_length=400)
-    timeout: Optional[float] = Field(default=None, ge=10, le=300)
-
-
 # ---------------------------------------------------------------- routes
 
 @app.get("/api/health")
@@ -89,24 +85,6 @@ async def health():
 
 @app.get("/api/settings")
 async def read_settings():
-    return get_settings().public()
-
-
-@app.post("/api/settings")
-async def write_settings(req: SettingsReq):
-    if not allow_runtime_config():
-        raise AppError(errors.RUNTIME_CONFIG_DISABLED, 403)
-    if req.base_url and not req.base_url.startswith(("http://", "https://")):
-        raise AppError(errors.BAD_REQUEST, 422, "base_url must be http(s)")
-    s = update_settings(**req.model_dump())
-    return s.public()
-
-
-@app.delete("/api/settings/key")
-async def delete_key():
-    if not allow_runtime_config():
-        raise AppError(errors.RUNTIME_CONFIG_DISABLED, 403)
-    clear_api_key()
     return get_settings().public()
 
 

@@ -11,4 +11,4 @@ if [[ ! -x .venv/bin/python ]]; then
   "${PYTHON:-python3}" -m venv .venv
 fi
 .venv/bin/python -m pip install --disable-pip-version-check -q -r requirements.txt
-exec .venv/bin/python -m uvicorn app.main:app --host "${HOST:-127.0.0.1}" --port "${PORT:-8000}"
+exec .venv/bin/python -m uvicorn app.main:app --host "${HOST:-127.0.0.1}" --port "${PORT:-8112}"

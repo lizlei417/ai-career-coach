@@ -61,8 +61,8 @@ export default function Sidebar() {
           <div className="flex items-center justify-between gap-2">
             <span className="text-white/40">{t('side.model')}</span>
             <span className={`flex min-w-0 items-center gap-1.5 ${llm?.configured ? 'text-white/80' : 'text-warn-200'}`}>
-              <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${llm?.configured ? 'bg-[#7FB89A]' : 'bg-warn-500'}`} />
-              <span className="truncate">{llm?.configured ? llm.model : t('side.notConfigured')}</span>
+              <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${llm?.connection === 'verified' ? 'bg-[#7FB89A]' : 'bg-warn-500'}`} />
+              <span className="truncate">{llm?.configured ? (llm.connection ? t(llm.connection === 'verified' ? 'ds.verified' : llm.connection === 'failed' ? 'ds.failed' : 'ds.pending') : llm.model) : t('side.notConfigured')}</span>
             </span>
           </div>
           <div className="flex items-center justify-between gap-2">
