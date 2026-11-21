@@ -32,6 +32,7 @@ class AIClient:
             raise CoachError("输入过长，请精简材料或面试记录。")
         call=cloud.reserve_call()
         try:
+            cloud.dispatch_call(call)
             response = self.client.chat.completions.create(
                 model=self.config.model,
                 messages=[{"role": "system", "content": instruction}, {"role": "user", "content": content}],
@@ -51,9 +52,15 @@ class AIClient:
             raise CoachError("API 身份验证失败，请检查 .env 中的 API Key。") from None
         except openai.RateLimitError:
             raise CoachError("API 配额不足或请求过于频繁，请检查账户额度或稍后重试。") from None
-        except openai.APITimeoutError:
+        except openai.APITimeoutError as exc:
+            import httpx
+            if isinstance(exc.__cause__, (httpx.ConnectTimeout,httpx.PoolTimeout)):
+                cloud.cancel_unsent(call)
             raise CoachError("AI 请求超时，当前操作尚未提交。请重试或缩短输入。") from None
-        except openai.APIConnectionError:
+        except openai.APIConnectionError as exc:
+            import httpx
+            if isinstance(exc.__cause__, (httpx.ConnectError,httpx.ConnectTimeout,httpx.PoolTimeout)):
+                cloud.cancel_unsent(call)
             raise CoachError("无法连接 AI 服务，请检查网络连接后重试。") from None
         except openai.BadRequestError:
             raise CoachError("API 未接受请求，请检查模型名称及其 Structured Outputs 支持，或精简材料。") from None

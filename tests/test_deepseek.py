@@ -46,7 +46,7 @@ class DeepSeekActions(unittest.TestCase):
             if key not in records: raise HTTPException(404)
             return copy.deepcopy(records[key])
         self.addCleanup(patch.stopall)
-        for name,value in {"verify":("00000000-0000-4000-8000-000000000001",False),"reserve_call":1,"record_usage":None}.items():
+        for name,value in {"verify":("00000000-0000-4000-8000-000000000001",False),"reserve_call":1,"record_usage":None,"dispatch_call":None,"cancel_unsent":None}.items():
             patch.object(cloud,name,return_value=value).start()
         patch.object(cloud,"read",side_effect=get).start()
         patch.object(cloud,"save",side_effect=put).start()

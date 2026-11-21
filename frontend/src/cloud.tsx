@@ -35,6 +35,7 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
   if (!expected || data.session?.user.id !== expected || owner !== expected)
     throw Error("Session changed");
   const headers = new Headers(options.headers);
+  if(options.method && options.method!=="GET" && !headers.has("X-Request-ID"))headers.set("X-Request-ID",crypto.randomUUID());
   headers.set("Authorization", "Bearer " + data.session.access_token);
   return fetch(base + path.replace(/^\//, ""), {
     ...options,

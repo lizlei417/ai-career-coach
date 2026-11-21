@@ -1,3 +1,5 @@
+import PersonalQuota from './PersonalQuota'
+import {confirmAction} from './ProductDialog'
 import { AuthGate, publicHome, authLanguage, ownerKey, savedState, saveState } from './cloud'
 import {sample} from "./pages-demo";
 import { useEffect, useRef, useState } from "react";
@@ -279,7 +281,7 @@ function App() {
     }
   }
   async function clear() {
-    if (!confirm(t("clearWorkspaceConfirm"))) return;
+    if (!await confirmAction(t("clearWorkspaceConfirm"))) return;
     setWorking("clear");
     try {
       await saveState({});
@@ -437,7 +439,7 @@ function App() {
                   <X size={16} />
                 </button>
               </div>
-              <div className="settings-grid">
+              <PersonalQuota lang={lang}/><div className="settings-grid">
                 <div>
                   <h3>{t("configuration")}</h3>
                   <p>

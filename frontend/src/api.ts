@@ -27,9 +27,10 @@ export async function api<T>(
     body: body === undefined ? undefined : isFile ? body : JSON.stringify(body),
     cache: "no-store",
   });
+  if(method!=="GET")window.dispatchEvent(new Event("quota-update"));
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
-    throw new ApiError(data.errors || {}, response.status);
+    throw new ApiError(data.detail==='DAILY_LIMIT'?{'zh-CN':'今日免费次数已用完，明天可以继续使用。','zh-TW':'今日免費次數已用完，明天可以繼續使用。',en:'Today’s free calls are used up. Please come back tomorrow.'}:data.errors || {}, response.status);
   }
   return response.json();
 }

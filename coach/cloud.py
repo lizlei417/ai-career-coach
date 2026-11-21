@@ -20,6 +20,7 @@ from pydantic import BaseModel, Field
 
 APP_ID = "claude"
 identity = ContextVar("career_user")
+request_context = ContextVar("career_request", default=None)
 BUCKET = "career-resumes-private"
 
 
@@ -46,39 +47,48 @@ def workspace(write=False):
 
 
 def counts(db):
-    row = db.execute(
-        """select count(*),count(*) filter(where user_id=%s and app_id='codex_v2')
-        from career_private.calls where day=(current_timestamp at time zone 'Asia/Hong_Kong')::date""",
+    used = db.execute(
+        "select count(*) from career_private.calls where user_id=%s and day=(current_timestamp at time zone 'Asia/Hong_Kong')::date and status != 'not_sent'",
         (identity.get(),),
-    ).fetchone()
-    daily = int(os.getenv("V2_DAILY_LIMIT", "5"))
-    site = int(os.getenv("SITE_DAILY_LIMIT", "20"))
+    ).fetchone()[0]
+    daily = int(os.getenv("ACCOUNT_DAILY_LIMIT", "10"))
     blocked = bool(db.execute("select 1 from career_private.billing").fetchone())
-    return {
-        "limit": daily,
-        "remaining": max(0, daily - row[1]),
-        "siteRemaining": max(0, site - row[0]),
-        "blocked": blocked,
-    }
+    return {"limit": daily, "used": used, "remaining": max(0, daily-used), "blocked": blocked}
 
 
 def reserve_call():
-    if os.getenv("AI_REQUESTS_ENABLED","true").lower() not in ("true","1"):
-        raise HTTPException(503,"AI requests temporarily paused")
+    if os.getenv("AI_REQUESTS_ENABLED", "true").lower() not in ("true", "1"):
+        raise HTTPException(503, "AI requests temporarily paused")
+    context = request_context.get()
+    request_id, step = None, None
+    if context is not None:
+        context[1] += 1
+        request_id, step = context
     with connect() as db:
-        db.execute("select pg_advisory_xact_lock(94576123)")
+        # Account lock covers all versions, processes and concurrent requests.
+        db.execute("select pg_advisory_xact_lock(hashtextextended(%s,1))", (identity.get(),))
         status = counts(db)
         if status["blocked"]:
             raise HTTPException(402, "DeepSeek balance exhausted")
-        if not status["siteRemaining"] or (
-            APP_ID == "codex_v2" and not status["remaining"]
-        ):
-            raise HTTPException(429, "Daily AI request limit reached")
+        if request_id and db.execute("select 1 from career_private.calls where user_id=%s and request_id=%s and step=%s", (identity.get(),request_id,step)).fetchone():
+            raise HTTPException(409, "Duplicate model request")
+        if not status["remaining"]:
+            raise HTTPException(429, "DAILY_LIMIT")
         return db.execute(
-            """insert into career_private.calls(day,user_id,app_id)
-            values ((current_timestamp at time zone 'Asia/Hong_Kong')::date,%s,%s) returning id""",
-            (identity.get(), APP_ID),
+            "insert into career_private.calls(day,user_id,app_id,request_id,step,status) values ((current_timestamp at time zone 'Asia/Hong_Kong')::date,%s,%s,%s,%s,'reserved') returning id",
+            (identity.get(),APP_ID,request_id,step),
         ).fetchone()[0]
+
+
+def dispatch_call(call):
+    with connect() as db:
+        db.execute("update career_private.calls set status='dispatched' where id=%s", (call,))
+
+
+def cancel_unsent(call):
+    # Only a transport-proven connection/pool failure may release the reservation.
+    with connect() as db:
+        db.execute("update career_private.calls set status='not_sent' where id=%s", (call,))
 
 
 def record_usage(call, tokens=None, blocked=False):
@@ -90,7 +100,7 @@ def record_usage(call, tokens=None, blocked=False):
             )
         if type(tokens) is int:
             db.execute(
-                "update career_private.calls set tokens=%s where id=%s", (tokens, call)
+                "update career_private.calls set tokens=%s,status='completed' where id=%s", (tokens, call)
             )
 
 
@@ -245,6 +255,10 @@ def install(app):
         except HTTPException as error:
             return JSONResponse({"detail": error.detail}, error.status_code)
         token = identity.set(uid)
+        key = request.headers.get("X-Request-ID", "")
+        if not re.fullmatch(r"[a-zA-Z0-9_-]{16,80}", key):
+            key = uuid4().hex
+        request_token = request_context.set([key, 0])
         try:
             if (
                 not admin
@@ -257,6 +271,7 @@ def install(app):
             response.headers["Cache-Control"] = "private, no-store"
             return response
         finally:
+            request_context.reset(request_token)
             identity.reset(token)
 
     @app.get("/healthz")
@@ -331,12 +346,12 @@ def install(app):
             db.execute("delete from career_private.documents where id=%s", (file_id,))
         return {"deletedDocuments": 1}
 
-    if APP_ID == "codex_v2":
+    @app.get("/api/quota")
+    def quota():
+        with connect() as db:
+            return counts(db)
 
-        @app.get("/api/quota")
-        def quota():
-            with connect() as db:
-                return counts(db)
+    if APP_ID == "codex_v2":
 
         @app.delete("/api/my-data")
         def clear_all():
