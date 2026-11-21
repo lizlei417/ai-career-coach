@@ -1,3 +1,5 @@
+import PersonalQuota from '../PersonalQuota'
+import {confirmAction} from '../ProductDialog'
 import { FileUp, Search, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { ApiError, del, get, post, upload } from '../lib/api'
@@ -33,11 +35,12 @@ export default function SettingsView() {
           ))}
         </div>
       </Section>
+      <PersonalQuota lang={s.lang}/>
       <ModelSection llm={llm} onChange={refreshStatus} />
       <KBSection kb={kb} onChange={refreshStatus} />
       <PromptSection />
       <Section title={t('st.local')} lead={t('st.localLead')}>
-        <Button variant="danger" icon={<Trash2 className="h-4 w-4" />} onClick={() => { if (confirm(t('st.clearConfirm'))) clearAll() }}>
+        <Button variant="danger" icon={<Trash2 className="h-4 w-4" />} onClick={async () => { if (await confirmAction(t('st.clearConfirm'))) clearAll() }}>
           {t('st.clearLocal')}
         </Button>
       </Section>

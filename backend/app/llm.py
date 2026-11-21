@@ -27,6 +27,7 @@ async def _request(system: str, user: str, max_tokens: int):
             "thinking": {"type": "disabled"}, "max_tokens": max_tokens}
     call=await asyncio.to_thread(cloud.reserve_call)
     try:
+        await asyncio.to_thread(cloud.dispatch_call,call)
         async with httpx.AsyncClient(timeout=cfg.timeout) as client:
             response = await client.post("https://api.deepseek.com/chat/completions", json=body,
                     headers={"Authorization": "Bearer " + cfg.api_key})
@@ -48,6 +49,10 @@ async def _request(system: str, user: str, max_tokens: int):
         connection = "failed"
         code = {401: "LLM_AUTH", 403: "LLM_AUTH", 402: "LLM_BALANCE", 429: "LLM_RATE_LIMIT"}.get(exc.response.status_code, "LLM_FAILED")
         raise AppError(code, 502) from None
+    except (httpx.ConnectError,httpx.ConnectTimeout,httpx.PoolTimeout):
+        await asyncio.to_thread(cloud.cancel_unsent,call)
+        connection = "failed"
+        raise AppError("NETWORK", 502) from None
     except httpx.TimeoutException:
         connection = "failed"
         raise AppError("LLM_TIMEOUT", 504) from None

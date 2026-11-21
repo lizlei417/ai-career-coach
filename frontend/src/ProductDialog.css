@@ -1,0 +1,91 @@
+.product-dialog {
+  box-sizing: border-box;
+  width: min(460px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  overflow: auto;
+  border: 1px solid #d8dee8;
+  border-radius: 12px;
+  padding: 24px;
+  background: #fff;
+  color: #172333;
+  box-shadow: 0 24px 90px #0b132844;
+  font:
+    14px/1.6 Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+.product-dialog::backdrop {
+  background: #0b152166;
+  backdrop-filter: blur(2px);
+}
+.product-dialog header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.product-dialog h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+.product-dialog header button {
+  font-size: 22px;
+  padding: 0 6px;
+}
+.product-dialog p {
+  margin: 12px 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.product-dialog footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+}
+.product-dialog button {
+  border-radius: 6px;
+  padding: 7px 14px;
+  border: 1px solid #d9dfe9;
+  background: #f8fafc;
+  cursor: pointer;
+  font: inherit;
+}
+.product-dialog button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+.product-dialog .dialog-primary {
+  background: #213e66;
+  color: #fff;
+  border-color: #213e66;
+}
+.product-dialog .dialog-danger {
+  background: #a33535;
+  color: #fff;
+  border-color: #a33535;
+}
+.product-dialog input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 8px;
+  padding: 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: white;
+  color: #172333;
+  font: inherit;
+}
+.product-dialog :focus-visible {
+  outline: 2px solid #6a8cba;
+  outline-offset: 2px;
+}
+.product-dialog [role="alert"] {
+  color: #a33535;
+  font-size: 13px;
+}
