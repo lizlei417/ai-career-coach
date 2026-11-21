@@ -41,3 +41,10 @@ async def object(path:str,r:Request):
  if path not in objects:raise HTTPException(404)
  if r.method=='GET':return Response(objects[path],media_type='application/pdf')
  del objects[path];return {}
+
+@app.delete('/storage/v1/object/career-resumes-private')
+async def remove_objects(r:Request):
+ if r.headers.get('apikey')!='sb_secret_offline':raise HTTPException(403)
+ paths=(await r.json())['prefixes']
+ for path in paths: objects.pop(path,None)
+ return []

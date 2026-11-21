@@ -144,6 +144,10 @@ def storage(method, path, data=None):
     headers = {"apikey": secret, "Content-Type": "application/pdf"}
     if not secret.startswith("sb_secret_"):
         headers["Authorization"] = "Bearer " + secret
+    if method == "DELETE":
+        headers["Content-Type"]="application/json"
+        return httpx.request("DELETE",os.environ["SUPABASE_URL"].rstrip("/")+
+            "/storage/v1/object/"+BUCKET,headers=headers,json={"prefixes":[path]},timeout=30)
     return httpx.request(
         method,
         os.environ["SUPABASE_URL"].rstrip("/")
