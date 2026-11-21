@@ -313,7 +313,11 @@ export function AppProvider({ children, project, projects, select, create }: {
     const cur = sRef.current
     if (!cur.materials) return
     const asked = cur.interview.fingerprint === cur.materials.fingerprint
-      ? cur.interview.turns.map((x) => ({ question: x.question.question, requirement_id: x.question.requirement_id }))
+      ? cur.interview.turns.slice(-8).map(turn => {
+          const last = turn.attempts[turn.attempts.length - 1]
+          return { question: turn.question.question, requirement_id: turn.question.requirement_id,
+            answer: last?.answer.slice(0, 600), feedback: last?.feedback?.action.slice(0, 240) }
+        })
       : []
     const q = await run('question', () =>
       post<Question>('/api/interview/question', { materials: bundle(), lang: cur.lang, asked, target_requirement: target || null }),
