@@ -21,11 +21,18 @@ with sync_playwright() as pw:
   return p.evaluate('''async path=>{const key=Object.keys(localStorage).find(k=>k.startsWith('coach.auth.'));const a=JSON.parse(localStorage.getItem(key));const r=await fetch('/v3/api/'+path,{headers:{Authorization:'Bearer '+a.access_token}});return await r.json()}''',path)
  def create(name):nav('新建项目');p.get_by_label('项目名称',exact=True).fill(name);nav('创建');p.locator('main header').filter(has_text=name).wait_for();save();p.locator('#coach-language').select_option('zh-CN');p.locator('#user-stage').select_option('current_student');p.locator('#job-goal').select_option('internship')
  def call(route,button):
-  with p.expect_response(lambda r:r.url.endswith(route)) as response:nav(button)
-  r=response.value;data=r.json();report['calls'].append({'route':route,'status':r.status,'language':data.get('lang')});(OUT/(mode+'-'+route.rsplit('/',1)[-1]+'.json')).write_text(json.dumps(data,ensure_ascii=False,indent=2));assert r.status==200,data
-  print('PASS real model',route,r.status,flush=True);return data
+  for attempt in range(2):
+   with p.expect_response(lambda r:r.url.endswith(route),timeout=85000) as response:
+    nav(button) if attempt==0 else p.get_by_role('button',name=re.compile('^(重试|重試|Retry)$')).first.click()
+   r=response.value;data=r.json();report['calls'].append({'route':route,'status':r.status,'language':data.get('lang'),'attempt':attempt+1})
+   (OUT/(mode+'-'+str(len(report['calls']))+'-'+route.rsplit('/',1)[-1]+'.json')).write_text(json.dumps(data,ensure_ascii=False,indent=2))
+   if r.status!=200 and data.get('error',{}).get('code')=='AI_FORMAT' and attempt==0:
+    print('Observed model format error; testing one explicit UI retry',route,flush=True);continue
+   assert r.status==200,data
+   print('PASS real model',route,r.status,flush=True);return data
+
  try:
-  if HOSTED:a=json.loads((Path.home()/'.config/ai-career-coach/qa-accounts.json').read_text())[1]
+  if HOSTED:a=json.loads((Path.home()/'.config/ai-career-coach/qa-accounts.json').read_text())[int(os.getenv('M3_ACCOUNT_INDEX','1'))]
   else:
    a={'email':'m3-real-'+suffix+'@example.test','password':'M3RealFlow123'}
    if not os.getenv('M3_CONTINUE_SUFFIX'):
@@ -34,7 +41,8 @@ with sync_playwright() as pw:
   report['quota_before']=api('quota')
   name='M3 Marketing '+suffix;report['first_project']=name
   if os.getenv('M3_CONTINUE_SUFFIX'):
-   nav(name);record=next(x for x in api('workspaces') if x['name']==name);stored=api('workspaces/'+record['id'])['state'];original=stored['inputs']['resumeText'];optimized=stored['resume']['data'];report['calls'].append({'route':'/resume/optimize','status':200,'language':'en','reused_saved_actual_result':True})
+   nav(name);record=next(x for x in api('workspaces') if x['name']==name);stored=api('workspaces/'+record['id'])['state'];original=stored['inputs']['resumeText'];optimized=stored['resume']['data'] if stored.get('resume') else None
+   if optimized:report['calls'].append({'route':'/resume/optimize','status':200,'language':'en','reused_saved_actual_result':True})
   else:
    create(name)
    q=ctx.new_page();q.set_content(''.join('<section style="white-space:pre-wrap;break-after:page">'+x+'</section>' for x in RESUME_PAGES));pdf=q.pdf();q.close()
@@ -43,9 +51,10 @@ with sync_playwright() as pw:
    p.get_by_role('radio',name='EN',exact=True).click();nav('Resume Optimization')
    optimized=call('/resume/optimize','Generate rewrites');assert optimized['m3']['prompt_version']=='M3_Prompt_v1';assert optimized['guidance']['sources'];assert optimized['items'],'No real edits returned'
   p.get_by_role('radio',name='EN',exact=True).click();nav('Resume Optimization')
+  if optimized is None:optimized=call('/resume/optimize','Generate rewrites')
   assert all(re.sub(r'\s+','',x['original']) in re.sub(r'\s+','',original) for x in optimized['items']);snap('resume')
   for it in optimized['items']:
-   if stored and stored['resume']['decisions'].get(it['id'],{}).get('state') in ('adopted','kept','edited'):continue
+   if stored and stored.get('resume') and stored['resume']['decisions'].get(it['id'],{}).get('state') in ('adopted','kept','edited'):continue
    row=p.get_by_test_id('rewrite-'+it['id']);row.get_by_role('button',name='Adopt' if it['verification']['status']=='grounded' else 'Keep original',exact=True).click()
   save();p.get_by_role('radio',name='繁',exact=True).click();nav('職位配對')
   if stored and stored.get('match'):
@@ -57,8 +66,8 @@ with sync_playwright() as pw:
    question=stored['interview']['turns'][0]['question'];report['calls'].append({'route':'/interview/question','status':200,'language':'zh-CN','reused_saved_actual_result':True})
   else:question=call('/interview/question','开始面试')
   assert question['question'];assert question['guidance']['sources'];snap('question')
-  if not stored or not stored['interview']['turns'][0]['attempts']:p.locator('textarea[placeholder]').last.fill('I prepared weekly campaign reports using Excel for the student society. I collected attendee feedback and organized the comments by topic to help the team plan campus communications.')
-  if stored and stored['interview']['turns'][0]['attempts']:
+  if not stored or not stored['interview']['turns'] or not stored['interview']['turns'][0]['attempts']:p.locator('textarea[placeholder]').last.fill('I prepared weekly campaign reports using Excel for the student society. I collected attendee feedback and organized the comments by topic to help the team plan campus communications.')
+  if stored and stored['interview']['turns'] and stored['interview']['turns'][0]['attempts']:
    feedback=stored['interview']['turns'][0]['attempts'][-1]['feedback'];report['calls'].append({'route':'/interview/feedback','status':200,'language':'zh-CN','reused_saved_actual_result':True})
   else:feedback=call('/interview/feedback','提交回答')
   assert feedback['action'];snap('feedback')

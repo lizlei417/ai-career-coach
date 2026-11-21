@@ -23,6 +23,7 @@ export interface Supplement {
 }
 
 export interface Materials {
+  pipeline_version?: string
   fingerprint: string
   job_title: string
   resume_lines: SourceLine[]

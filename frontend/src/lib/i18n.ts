@@ -1,6 +1,7 @@
 import type { Lang } from './types'
 
 const zhCN = {
+  'mat.updated': '材料解析已更新。下次分析会刷新材料；原有存档仍保留。',
   'err.LANGUAGE_REQUIRED': '请先明确选择输出语言。',
   'ro.scopeReview': '原文的协助或参与范围可能变更',
   'ro.negationReview': '原文的否定或限制条件可能变更',
@@ -361,6 +362,7 @@ const zhCN = {
 type Dict = Record<keyof typeof zhCN, string>
 
 const zhTW: Dict = {
+  'mat.updated': '材料解析已更新。下次分析會刷新材料；原有存檔仍保留。',
   'err.LANGUAGE_REQUIRED': '請先明確選擇輸出語言。',
   'ro.scopeReview': '原文的協助或參與範圍可能變更',
   'ro.negationReview': '原文的否定或限制條件可能變更',
@@ -709,6 +711,7 @@ const zhTW: Dict = {
 }
 
 const en: Dict = {
+  'mat.updated': 'Material parsing was updated. The next analysis refreshes materials; saved results are retained.',
   'err.LANGUAGE_REQUIRED': 'Please explicitly select an output language first.',
   'ro.scopeReview': 'Support or participation scope may have changed',
   'ro.negationReview': 'A negation or constraint may have changed',

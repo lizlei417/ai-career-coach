@@ -168,12 +168,12 @@ function MatchRow({ it, req, prio, disabled }: { it: MatchItem; req: Requirement
           <StatusMark status={it.status} />
           {t(`jm.status.${it.status}` as TKey)}
         </div>
-        {it.rationale && <p className="text-[13px] leading-relaxed text-ink-600">{it.rationale}</p>}
+        {it.rationale && <p className="whitespace-pre-line text-[13px] leading-relaxed text-ink-600">{it.rationale}</p>}
         {it.verification === 'downgraded' && <p className="mt-1 text-[12px] text-warn-600">{t('jm.downgraded')}</p>}
         {it.status !== 'direct' && it.next_step.text && (
           <div className="mt-2.5 rounded-md bg-paper-50 px-3 py-2">
             <div className="mb-0.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-accent-600">{t(`jm.next.${it.next_step.type}` as TKey)}</div>
-            <p className="text-[13px] leading-relaxed text-ink-800">{it.next_step.text}</p>
+            <p className="whitespace-pre-line text-[13px] leading-relaxed text-ink-800">{it.next_step.text}</p>
           </div>
         )}
         {it.status !== 'direct' && !disabled && (

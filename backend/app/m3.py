@@ -7,6 +7,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import logging
 from .config import M3_PROMPT_PATH
 from .errors import AppError
 from .materials import check_materials, segment
@@ -15,7 +16,13 @@ from .rag import index, build_query
 from .llm import complete_json
 from .coach import _fingerprint, _validate_bundle
 
+MATERIALS_VERSION = "m3-jd-sentences-v1"
 LANG = {"zh-CN": "zh-Hans", "zh-TW": "zh-Hant", "en": "en"}
+RESULT_KEYS = {
+    "resume_optimization": "edits: array of {original, jd_quote, rewrite, reason}; questions_to_student: string array",
+    "job_matching": "requirements: array of {jd_quote, priority, evidence_quotes: string array, status, reason, next_step}",
+    "mock_interview": "phase: question|follow_up|summary; question: string|null; feedback: {answer_quote,strength,next_try}|null; summary: string|null",
+}
 STAGES = {"no_experience", "current_student", "recent_graduate"}
 GOALS = {"internship", "job"}
 
@@ -31,7 +38,7 @@ def system_prompt():
 def prompt_status():
     try:
         text = system_prompt()
-        return [{"name": "M3_Prompt_v1", "custom": False, "loaded": True,
+        return [{"name": "M3_Prompt_v1", "custom": False, "loaded": True, "protocol_adapter": "m3-json-v1",
                  "sha256": hashlib.sha256(text.encode()).hexdigest()}]
     except AppError:
         return [{"name": "M3_Prompt_v1", "custom": False, "loaded": False}]
@@ -53,16 +60,29 @@ async def prepare_materials(resume_text, jd_text, job_title, lang, user_stage=No
     if len([x for x in resume if not x["heading"]]) < 2:
         raise AppError("RESUME_TOO_SHORT", 422)
     reqs = []
+    scoped = any(x["heading"] and re.search(r"responsibilit|requirement|qualification|preferred|任职|任職|职责|職責|要求|条件|條件", x["text"], re.I) for x in jd)
+    in_scope = not scoped
     for line in jd:
-        if line["heading"] or len(norm(line["text"])) < 8:
+        if line["heading"]:
+            if re.search(r"responsibilit|requirement|qualification|preferred|任职|任職|职责|職責|要求|条件|條件", line["text"], re.I):
+                in_scope = True
+            continue
+        if not in_scope or len(norm(line["text"])) < 8:
+            continue
+        if line == jd[0] and job_title and job_title.casefold() in line["text"].casefold():
             continue
         cat = "preferred" if re.search(r"preferred|nice.to.have|加分|優先|优先", line["text"]+line.get("section", ""), re.I) else "required"
-        reqs.append({"id": f"Q{len(reqs)+1}", "text": line["text"], "source_ids": [line["id"]], "category": cat, "kind": "technical"})
+        # Split exact JD sentences even below the PDF segmenter's length cutoff.
+        # This avoids a degree requirement overwriting a language requirement.
+        parts = re.split(r"(?<=[。！？!?；;])\s*|(?<=\.)\s+(?=[A-Z])", line["text"])
+        for part in parts:
+            if len(norm(part)) < 8: continue
+            reqs.append({"id": f"Q{len(reqs)+1}", "text": part, "source_ids": [line["id"]], "category": cat, "kind": "technical"})
     if not reqs:
         raise AppError("JD_NO_REQUIREMENTS", 422)
-    return {"fingerprint": _fingerprint(resume_text, jd_text, job_title, p["user_stage"], p["job_goal"]), "job_title": job_title[:120],
+    return {"fingerprint": _fingerprint(resume_text, jd_text, job_title, p["user_stage"], p["job_goal"], MATERIALS_VERSION), "job_title": job_title[:120],
             "resume_lines": resume, "jd_lines": jd, "requirements": reqs, "lang": lang,
-            "prompt_version": "M3_Prompt_v1", "resume_format": resume_format, **p}
+            "prompt_version": "M3_Prompt_v1", "pipeline_version": MATERIALS_VERSION, "resume_format": resume_format, **p}
 
 
 def texts(b):
@@ -77,13 +97,23 @@ async def call(task, b, lang, *, action="start", history=None, answer="", extra=
     payload = {"task": task, "ui_language": LANG.get(lang, ""), **p, "resume_format": b.get("resume_format", "text"),
                "resume_text": resume, "jd_text": jd, "rag_chunks": chunks,
                "interview_action": action, "history": history or [], "answer_text": answer}
-    out = await complete_json(system_prompt(), json.dumps(payload, ensure_ascii=False))
+    # Restate only the supplied protocol's machine schema, not new coaching
+    # policy. JSON mode alone guarantees syntax, not the required envelope.
+    contract = ("\n\nM3 JSON protocol reminder for task=" + task +
+        ": exactly four top-level keys: status (ok or needs_input), message (string), "
+        "result (object when ok; null when needs_input), citations (array of {claim, chunk_id}; "
+        "use [] when no citations, never null or omitted). result fields: " + RESULT_KEYS[task] +
+        ". For mock_interview finish, result.phase must be summary. Do not output the schema itself.")
+    out = await complete_json(system_prompt() + contract, json.dumps(payload, ensure_ascii=False))
     if out.get("status") == "needs_input":
         # The message is still returned in detail; frontend provides a localized
         # recovery hint. No success result is saved for an incomplete analysis.
         raise AppError("M3_NEEDS_INPUT", 422)
     if out.get("status") != "ok" or not isinstance(out.get("result"), dict) or not isinstance(out.get("citations"), list):
-        raise AppError("AI_FORMAT", 502, "m3_envelope")
+        diagnostic = {"status_ok": out.get("status")=="ok", "result_type": type(out.get("result")).__name__,
+                      "citations_type": type(out.get("citations")).__name__}
+        logging.getLogger("coach.m3").warning("invalid envelope task=%s shape=%s", task, diagnostic)
+        raise AppError("AI_FORMAT", 502, "m3_envelope:" + json.dumps(diagnostic, separators=(",", ":")))
     ids = {x["chunk_id"] for x in chunks}
     citations = [x for x in out["citations"] if isinstance(x, dict) and x.get("chunk_id") in ids and isinstance(x.get("claim"), str)]
     guidance = {"connected": index.status()["connected"], "sources": [
@@ -153,6 +183,8 @@ async def job_match(materials, lang):
     for r in result["requirements"]:
         if not isinstance(r, dict) or r.get("status") not in ("direct", "partial", "not_evidenced") or r.get("priority") not in ("required", "preferred", "unspecified"):
             raise AppError("AI_FORMAT", 502, "m3_requirement")
+        if not all(isinstance(r.get(k), str) for k in ("jd_quote", "reason", "next_step")) or not isinstance(r.get("evidence_quotes"), list) or not all(isinstance(v, str) for v in r["evidence_quotes"]):
+            raise AppError("AI_FORMAT", 502, "m3_requirement_fields")
         quote = r.get("jd_quote")
         if not isinstance(quote, str) or not quote_in_text(quote, jd):
             continue
@@ -170,9 +202,25 @@ async def job_match(materials, lang):
             downgraded = status != "none" and not ev
             if downgraded: status = "none"
             if status == "none": ev = []
-            assessed[q["id"]] = {"requirement_id": q["id"], "status": status, "evidence": ev,
+            prior = assessed.get(q["id"])
+            item = {"requirement_id": q["id"], "status": status, "evidence": ev,
                 "rationale": str(r.get("reason") or "")[:800], "next_step": {"type": "clarify", "text": str(r.get("next_step") or "")[:800]},
                 "priority": 1 if r["priority"] == "required" else 2, "verification": "downgraded" if downgraded else "ok", "jd_quote": quote}
+            # Multiple model requirements can legitimately map to one sentence.
+            # Preserve each assessment and every quote instead of last-write-wins.
+            detail = {"jd_quote": quote, "priority": r["priority"], "status": status,
+                      "reason": item["rationale"], "next_step": item["next_step"]["text"]}
+            item["assessments"] = [detail]
+            if prior:
+                details = prior["assessments"] + [detail]
+                evidence = list({(e["id"], e["text"]):e for e in prior["evidence"]+ev}.values())
+                item.update(assessments=details, evidence=evidence,
+                    status="direct" if all(d["status"]=="direct" for d in details) else "partial" if evidence else "none",
+                    rationale="\n".join(d["jd_quote"]+" — "+d["reason"] for d in details),
+                    next_step={"type":"clarify","text":"\n".join(d["jd_quote"]+" — "+d["next_step"] for d in details)},
+                    priority=min(prior["priority"], item["priority"]),
+                    verification="downgraded" if "downgraded" in (prior["verification"],item["verification"]) else "ok")
+            assessed[q["id"]] = item
     items = [assessed.get(q["id"], {"requirement_id": q["id"], "status": "unassessed", "evidence": [], "rationale": "", "next_step": {"type": "none", "text": ""}, "priority": 3, "verification": "missing"}) for q in b["requirements"]]
     return {"items": items, "priority_order": [x["requirement_id"] for x in sorted(items, key=lambda x:x["priority"]) if x["status"] in ("partial", "none")][:5],
             "overview": "", "guidance": guidance, "lang": lang, "m3": meta}
@@ -219,6 +267,8 @@ async def interview_feedback(materials, lang, question, answer, history, turns=N
     if result.get("phase") not in ("question", "follow_up", "summary") or not isinstance(result.get("feedback"), dict):
         raise AppError("AI_FORMAT", 502, "m3_feedback")
     feedback = result["feedback"]
+    if not all(isinstance(feedback.get(k), str) for k in ("answer_quote", "strength", "next_try")):
+        raise AppError("AI_FORMAT", 502, "m3_feedback_fields")
     quote = str(feedback.get("answer_quote") or "")
     valid = quote_in_text(quote, answer)
     # The formal prompt allows one follow-up per main question. The UI tracks
@@ -237,6 +287,6 @@ async def interview_summary(lang, turns, materials=None):
     if not turns: raise AppError("ANSWER_EMPTY", 422)
     b = bundle(materials or {}, lang)
     result, guidance, meta = await call("mock_interview", b, lang, action="finish", history=history_of(turns))
-    if result.get("phase") != "summary" or not isinstance(result.get("summary"), str):
+    if result.get("phase") != "summary" or not isinstance(result.get("summary"), str) or not result["summary"].strip():
         raise AppError("AI_FORMAT", 502, "m3_summary")
     return {"strengths": [], "priorities": [], "next_session": result["summary"], "guidance": guidance, "lang": lang, "m3": meta}

@@ -42,7 +42,7 @@ real_complete=m3.complete_json
 async def audited_complete(system,user):
     payload=json.loads(user)
     control['requests'].append({'task':payload['task'],'ui_language':payload['ui_language'],
-        'system_sha256':hashlib.sha256(system.encode()).hexdigest(),
+        'system_sha256':hashlib.sha256(system.encode()).hexdigest(),'official_prompt_sha256':hashlib.sha256(m3.system_prompt().encode()).hexdigest(),
         'chunk_ids':[c['chunk_id'] for c in payload['rag_chunks']],
         'resume_sha256':hashlib.sha256(payload['resume_text'].encode()).hexdigest()})
     out=await real_complete(system,user)

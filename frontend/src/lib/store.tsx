@@ -110,6 +110,7 @@ interface Ctx {
   llm: LLMPublic | null
   kb: KBStatus | null
   // derived
+  materialsOutdated: boolean
   inputsDirty: boolean
   ready: boolean
   isStale: (fp?: string) => boolean
@@ -284,6 +285,7 @@ export function AppProvider({ children, project, projects, select, create, renam
     setS((cur) => ({ ...cur, ...(typeof p === 'function' ? p(cur) : p) }))
   }, [])
 
+  const materialsOutdated = !!s.materials && s.materials.pipeline_version !== "m3-jd-sentences-v1"
   const inputsDirty = !!s.materials && keyOf(s.inputs) !== s.inputsKey
   const ready = !!s.materials
   const supKey = supKeyOf(s.supplements)
@@ -339,7 +341,7 @@ export function AppProvider({ children, project, projects, select, create, renam
     if (!cur.inputs.resumeText.trim()) { setError('resume', 'RESUME_EMPTY'); return }
     if (!cur.inputs.jdText.trim()) { setError('resume', 'JD_EMPTY'); return }
     const result = await run('resume', async () => {
-      const materials = !cur.materials || keyOf(cur.inputs) !== cur.inputsKey
+      const materials = !cur.materials || cur.materials.pipeline_version !== "m3-jd-sentences-v1" || keyOf(cur.inputs) !== cur.inputsKey
         ? await post<Materials>('/api/materials/prepare', { resume_text: cur.inputs.resumeText, jd_text: cur.inputs.jdText, job_title: cur.inputs.jobTitle, lang: cur.lang, user_stage: cur.inputs.userStage, job_goal: cur.inputs.jobGoal, resume_format: cur.inputs.resumeFile ? "pdf" : "text" })
         : cur.materials
       const out = await post<OptimizeResult>('/api/resume/optimize', { materials: { ...materials, supplements: cur.supplements, user_stage: cur.inputs.userStage, job_goal: cur.inputs.jobGoal }, lang: cur.lang, user_stage: cur.inputs.userStage, job_goal: cur.inputs.jobGoal, resume_format: cur.inputs.resumeFile ? "pdf" : "text" })
@@ -366,7 +368,7 @@ export function AppProvider({ children, project, projects, select, create, renam
     if (!cur.inputs.resumeText.trim()) { setError('match', 'RESUME_EMPTY'); return }
     if (!cur.inputs.jdText.trim()) { setError('match', 'JD_EMPTY'); return }
     const result = await run('match', async () => {
-      const materials = !cur.materials || keyOf(cur.inputs) !== cur.inputsKey
+      const materials = !cur.materials || cur.materials.pipeline_version !== "m3-jd-sentences-v1" || keyOf(cur.inputs) !== cur.inputsKey
         ? await post<Materials>('/api/materials/prepare', { resume_text: cur.inputs.resumeText, jd_text: cur.inputs.jdText, job_title: cur.inputs.jobTitle, lang: cur.lang, user_stage: cur.inputs.userStage, job_goal: cur.inputs.jobGoal, resume_format: cur.inputs.resumeFile ? "pdf" : "text" })
         : cur.materials
       const out = await post<MatchResult>('/api/match', { materials: { ...materials, supplements: cur.supplements, user_stage: cur.inputs.userStage, job_goal: cur.inputs.jobGoal }, lang: cur.lang, user_stage: cur.inputs.userStage, job_goal: cur.inputs.jobGoal, resume_format: cur.inputs.resumeFile ? "pdf" : "text" })
@@ -497,7 +499,7 @@ export function AppProvider({ children, project, projects, select, create, renam
       try { await write; setSaveFailed(false) } catch { setSaveFailed(true) } finally { setSaving(false) }
     },
     setDraft: (id, value) => patch(c => ({ drafts: { ...c.drafts, [id]: value } })),
-    s, t, busy, errors, llm, kb, inputsDirty, ready, isStale, supKey,
+    s, t, busy, errors, llm, kb, materialsOutdated, inputsDirty, ready, isStale, supKey,
     setLang: (l) => { rememberLanguage(l); patch(c => ({ lang: l, inputs: { ...c.inputs, languageConfirmed: true } })) },
     enter: () => patch({ entered: true }),
     leave: publicHome,

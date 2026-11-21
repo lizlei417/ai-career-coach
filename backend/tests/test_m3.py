@@ -49,7 +49,7 @@ class M3Tests(unittest.IsolatedAsyncioTestCase):
             for lang,code in [('zh-CN','zh-Hans'),('zh-TW','zh-Hant'),('en','en')]:
                 await m3.resume_optimize(b,lang)
                 system,user=model.call_args.args;payload=json.loads(user)
-                self.assertEqual(system,m3.system_prompt());self.assertIn('不把「參與」升格為「主導」',system)
+                self.assertTrue(system.startswith(m3.system_prompt()));self.assertIn("citations (array",system);self.assertIn('不把「參與」升格為「主導」',system)
                 self.assertEqual(payload['ui_language'],code);self.assertEqual(payload['task'],'resume_optimization')
                 self.assertEqual(payload['user_stage'],'current_student');self.assertEqual(payload['job_goal'],'internship')
                 self.assertIn('campaign reports',payload['resume_text']);self.assertTrue(payload['rag_chunks'])
@@ -105,3 +105,14 @@ class M3Tests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(e.exception.code,'LANGUAGE_REQUIRED');model.assert_not_called()
             with self.assertRaises(AppError) as e:await m3.resume_optimize({},None)
             self.assertEqual(e.exception.code,'LANGUAGE_REQUIRED');model.assert_not_called()
+    async def test_compound_jd_sentences_are_separate_and_titles_excluded(self):
+        jd='Marketing Assistant - Company\nRequirements\nBachelor degree in Marketing. Clear written English is required.'
+        b=await m3.prepare_materials(RESUME,jd,'Marketing Assistant','en','current_student','job')
+        self.assertEqual([r['text'] for r in b['requirements']],['Bachelor degree in Marketing.','Clear written English is required.'])
+    async def test_multiple_assessments_never_overwrite_each_other(self):
+        b=await self.materials();quote=b['requirements'][0]['text']
+        items=[{'jd_quote':quote,'priority':'required','status':'direct','evidence_quotes':['Created social media posts for campus events.'],'reason':'First assessment','next_step':'First step'},
+               {'jd_quote':quote,'priority':'required','status':'not_evidenced','evidence_quotes':[],'reason':'Second assessment','next_step':'Second step'}]
+        with patch('app.m3.complete_json',AsyncMock(return_value=ok({'requirements':items}))):
+            out=await m3.job_match(b,'en');item=out['items'][0]
+            self.assertEqual(len(item['assessments']),2);self.assertIn('First assessment',item['rationale']);self.assertIn('Second assessment',item['rationale']);self.assertEqual(item['status'],'partial')

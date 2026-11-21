@@ -28,8 +28,20 @@ with sync_playwright() as pw:
   ctl(delay=0);p.get_by_role('button',name='重新生成',exact=True).first.click();expect(p.get_by_test_id('rewrite-O1').get_by_role('button',name='采用',exact=True)).to_be_enabled()
   ctl(failure='server');p.get_by_role('button',name='重新生成',exact=True).first.click();expect(p.get_by_role('alert')).to_contain_text('失败')
   ctl(failure=None);p.get_by_role('button',name='重试',exact=True).click();expect(p.get_by_test_id('rewrite-O1').get_by_role('button',name='采用',exact=True)).to_be_enabled()
+  p.locator('[data-saved=true]').wait_for()
+  p.evaluate("""async()=>{
+   const k=Object.keys(localStorage).find(k=>k.startsWith('coach.auth.'));const a=JSON.parse(localStorage.getItem(k));
+   const headers={Authorization:'Bearer '+a.access_token,'Content-Type':'application/json'};
+   const all=await(await fetch('/v3/api/workspaces',{headers})).json();const project=all.find(x=>x.name==='Race Regression');
+   const record=await(await fetch('/v3/api/workspaces/'+project.id,{headers})).json();delete record.state.materials.pipeline_version;
+   const response=await fetch('/v3/api/workspaces/'+project.id,{method:'PUT',headers,body:JSON.stringify(record)});if(!response.ok)throw Error('fixture save failed');
+  }""")
+  p.reload();expect(p.get_by_text('材料解析已更新。',exact=False)).to_be_visible()
+  expect(p.get_by_test_id('rewrite-O1').get_by_role('button',name='采用',exact=True)).to_be_enabled()
+  with p.expect_request(lambda r:r.url.endswith('/materials/prepare')):p.get_by_role('button',name='重新生成',exact=True).first.click()
+  expect(p.get_by_test_id('rewrite-O1').get_by_role('button',name='采用',exact=True)).to_be_enabled()
   p.locator('[data-saved=true]').wait_for();p.screenshot(path=str(OUT/'08-race-recovered.png'),full_page=True)
-  (OUT/'race-results.json').write_text(json.dumps({'prepare_inflight_edit_marked_dirty':True,'optimize_inflight_edit_marked_stale':True,'regenerate_recovers':True,'server_failure_retry_recovers':True},indent=2))
+  (OUT/'race-results.json').write_text(json.dumps({'prepare_inflight_edit_marked_dirty':True,'optimize_inflight_edit_marked_stale':True,'regenerate_recovers':True,'server_failure_retry_recovers':True,'legacy_materials_refresh_before_new_analysis':True},indent=2))
   print('PASS prepare/optimize in-flight material edits correctly stale; regenerate and 503 retry recover')
  finally:
   ctl(delay=0,failure=None)

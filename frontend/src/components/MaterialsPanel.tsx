@@ -12,7 +12,7 @@ function count(s: string) {
 }
 
 export default function MaterialsPanel() {
-  const { project,t, s, llm, setInputs, setLang, setMaterialsOpen, prepare, run, busy, errors, clearError, setError, inputsDirty, ready, removeSupplement } = useApp()
+  const { project,t, s, llm, setInputs, setLang, setMaterialsOpen, prepare, run, busy, errors, clearError, setError, inputsDirty, materialsOutdated, ready, removeSupplement } = useApp()
   const { inputs } = s
   const fileRef = useRef<HTMLInputElement>(null)
   const [preview, setPreview] = useState<Blob|null>(null)
@@ -269,6 +269,7 @@ export default function MaterialsPanel() {
 
       {/* footer */}
       <div className="shrink-0 space-y-2.5 border-t border-paper-200 bg-paper-50 px-5 py-4">
+        {materialsOutdated && <div className="text-[12px] leading-snug text-accent-600">{t('mat.updated')}</div>}
         {inputsDirty && <div className="text-[12px] leading-snug text-warn-600">{t('mat.dirty')}</div>}
         {ready && !inputsDirty && s.materials && (
           <div className="text-[12px] text-ink-500">
@@ -282,7 +283,7 @@ export default function MaterialsPanel() {
           className="w-full"
           loading={busy.prepare}
           onClick={prepare}
-          disabled={!llm?.configured || (ready && !inputsDirty)}
+          disabled={!llm?.configured || (ready && !inputsDirty && !materialsOutdated)}
         >
           {busy.prepare ? t('mat.analyzing') : ready ? t('mat.reanalyze') : t('mat.analyze')}
         </Button>

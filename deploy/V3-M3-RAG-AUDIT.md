@@ -30,7 +30,7 @@
 
 实际入口为 `backend/app/main.py` → `backend/app/m3.py` → 既有 `llm.complete_json` → DeepSeek。旧 coach.py 保留供历史适配辅助函数使用，当前 V3 的分析路由不再使用旧自定义模板。V1、V2、Claude 的 Docker 固定版本未改。
 
-使用原 Markdown 的 `text` 围栏中的系统消息，正文 SHA-256 为 `85b8f6298336f9c24ecb4a578b68cb965ffc387992ffd8d4dec475d21eb10c9b`。没有改写正式 Prompt；原 transport 的 JSON 输出指令仍保留。用户请求使用 task、ui_language、user_stage、job_goal、resume_format、resume_text、jd_text、rag_chunks 和面试字段。
+使用原 Markdown 的 `text` 围栏中的系统消息，正文 SHA-256 为 `85b8f6298336f9c24ecb4a578b68cb965ffc387992ffd8d4dec475d21eb10c9b`。没有改写原文件或其中的辅导规则；最终运行时在原系统消息后重申相同的 JSON 键名、枚举和字段类型，避免仅有 JSON 语法正确而外层协议不符。原 transport 的 JSON 输出指令仍保留。状态接口的哈希指原系统消息；完整运行时消息另有哈希。用户请求使用 task、ui_language、user_stage、job_goal、resume_format、resume_text、jd_text、rag_chunks 和面试字段。
 
 |功能|按正式原文执行的要求|现有 UI 适配|
 |---|---|---|
@@ -69,9 +69,9 @@
 |层级|结果|证据|
 |---|---|---|
 |接手后原始基线|33 项通过|tests/evidence/m3-baseline.log|
-|新增单元/接口测试|47 项通过|tests/evidence/m3-unit.log、unit-tests.log|
+|新增单元/接口测试|49 项通过|tests/evidence/m3-unit.log、unit-tests.log|
 |前端|TypeScript、Vite 构建通过|tests/evidence/m3-build.log；仅原有 bundle 大小提示|
-|完整 Mock 回归|竞态、API/RLS/10 次额度、浏览器主流程通过|tests/evidence/m3-final-regression.log；e2e-results.json、race-results.json、api-integration.json|
+|完整 Mock 回归|竞态、API/RLS/10 次额度、浏览器主流程通过|tests/evidence/m3-release-final.log；e2e-results.json、race-results.json、api-integration.json|
 |真实 DeepSeek 本地|优化、匹配、提问、反馈、总结、第二项目匹配六次成功|tests/evidence/m3/local-results.json、raw-*.json、m3-real-app.log|
 |真实多项目|两份虚构简历、不同 JD 分别分析，保存、切换两轮、刷新恢复|同上，两个简历 SHA 不同，档案隔离|
 |完整导出|PDF 和 DOCX 可重新打开，包含与预览一致的完整正文|tests/evidence/m3/local-final.pdf、local-final.docx、local-final.png|
@@ -108,3 +108,13 @@ M3_HOSTED=1 "$PY" tests/m3_real_e2e.py
 - 补充笔记保留，但依正式 Prompt，经历证据只取 resume_text；需参与分析的已核实信息应写入正文，界面已说明。
 - 语言与前置选项随项目存档；旧项目不补写虚构身份。重新生成时需提供缺少的选择。
 - JD 导入不属于本轮主线：修复版 `bbe78f0` 的 job_import.py 未修改，17 项相关回归仍通过。此前 Nowcoder、Greenhouse、Lever、Python.org 的真实线上导入已通过；Nowcoder 职位已结束，原样保留状态。登录、验证码、拒绝自动访问的网站仍明确失败，不绕过访问限制；详见 V3-JD-IMPORT-AUDIT.md。本轮新部署后的抽检结果另行记录。
+
+## 后续线上发现与修复记录
+
+初次线上发布 f1be781 后，实际发现：
+
+1. 认证中间件一次返回 HTTP 503 Authentication unavailable，尚未进入 DeepSeek，额度保持 0；随后 me/quota/health 均恢复 200。没有误报为 DeepSeek 或 Claude Credentials rejected。认证仍失败关闭，没有放宽权限或更换配置。
+2. JD 中“一行两句要求”未在原 PDF 分段的 260 字阈值以下拆开，且结果以 requirement_id 覆盖写入，导致后一个评估覆盖前一个。现在逐句建立要求、跳过标题前言，并保留同一句内多个模型评估及各自证据与下一步。针对性测试验证不会覆盖。
+3. 线上总结两次被严格外层校验拒绝，均显示 AI_FORMAT/m3_envelope，未保存假总结。用相同测试材料与已发生问答在本地直接调用真实 DeepSeek，得到合法完整原始对象，说明并非确定性的材料或认证错误。原线上两次响应正文未记录，不能猜测具体缺失字段；新版错误返回安全的字段类型诊断，并在系统消息中重申正式原文的机器协议，不自动重复调用模型、不猜补分析结果。新约束本地真实总结调用为 HTTP 200，原始对象保留在 raw-mock_interview.json。最终线上结果以最终验收追加为准。
+
+新解析器有版本标记。旧项目仍可查看和导出原有结果；下一次主动生成会先刷新材料，防止用旧的要求编号解释新结果。新增浏览器用例验证旧存档缺少版本字段时保留结果，并在用户重新生成时刷新材料。原语料 workshop-01 与 workshop-02 有原始内容重叠，保留提供方片段；所有 chunk_id 唯一，每个只索引一次。
