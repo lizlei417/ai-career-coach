@@ -202,7 +202,7 @@ export function GuidancePanel({ g }: { g?: Guidance }) {
 /* ---------------------------------------------------------------- Language switch */
 
 export function LangSwitch({ dark }: { dark?: boolean }) {
-  const { s, setLang } = useApp()
+  const { s, setLang, switching } = useApp()
   const langs: Lang[] = ['zh-CN', 'zh-TW', 'en']
   return (
     <div role="radiogroup" aria-label="Language" className={`inline-flex items-center rounded-md p-0.5 text-[12px] ${dark ? 'bg-white/[0.06] ring-1 ring-white/10' : 'bg-white/70 ring-1 ring-paper-300 backdrop-blur'}`}>
@@ -211,6 +211,7 @@ export function LangSwitch({ dark }: { dark?: boolean }) {
         return (
           <button
             key={l}
+            disabled={switching}
             role="radio"
             aria-checked={on}
             title={LANG_LABEL[l]}

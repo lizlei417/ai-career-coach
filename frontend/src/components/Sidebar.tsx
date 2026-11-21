@@ -6,7 +6,7 @@ import { LangSwitch } from './ui'
 import { Logo } from '../views/Landing'
 
 export default function Sidebar() {
-  const { t, s, setFeature, leave, llm, kb, isStale } = useApp()
+  const { t, s, setFeature, leave, llm, kb, isStale, switching } = useApp()
   const items: { key: Feature; label: string; icon: typeof FileText; dot?: 'ready' | 'stale' }[] = [
     { key: 'overview', label: t('nav.overview'), icon: LayoutGrid },
     { key: 'resume', label: t('nav.resume'), icon: FileText, dot: s.resume ? (isStale(s.resume.fingerprint) ? 'stale' : 'ready') : undefined },
@@ -30,6 +30,7 @@ export default function Sidebar() {
           const Icon = it.icon
           return (
             <button
+              disabled={switching}
               key={it.key}
               onClick={() => setFeature(it.key)}
               className={`group relative flex h-10 w-full items-center gap-3 rounded-md px-3 text-[13.5px] transition-colors ${
@@ -45,6 +46,7 @@ export default function Sidebar() {
         })}
         <div className="!my-3 mx-3 h-px bg-white/[0.07]" />
         <button
+          disabled={switching}
           onClick={() => setFeature('settings')}
           className={`relative flex h-10 w-full items-center gap-3 rounded-md px-3 text-[13.5px] transition-colors ${
             s.feature === 'settings' ? 'bg-white/[0.08] text-white' : 'text-white/60 hover:bg-white/[0.04] hover:text-white'
@@ -57,7 +59,7 @@ export default function Sidebar() {
       </nav>
 
       <div className="space-y-3 px-5 pb-5">
-        <button onClick={() => setFeature('settings')} className="block w-full space-y-1.5 rounded-md border border-white/[0.07] px-3 py-2.5 text-left text-[11.5px] transition-colors hover:border-white/15">
+        <button disabled={switching} onClick={() => setFeature('settings')} className="block w-full space-y-1.5 rounded-md border border-white/[0.07] px-3 py-2.5 text-left text-[11.5px] transition-colors hover:border-white/15">
           <div className="flex items-center justify-between gap-2">
             <span className="text-white/40">{t('side.model')}</span>
             <span className={`flex min-w-0 items-center gap-1.5 ${llm?.configured ? 'text-white/80' : 'text-warn-200'}`}>
@@ -72,7 +74,7 @@ export default function Sidebar() {
         </button>
         <div className="flex items-center justify-between">
           <LangSwitch dark />
-          <button onClick={leave} title={t('nav.home')} aria-label={t('nav.home')} className="rounded-md p-2 text-white/45 hover:bg-white/[0.06] hover:text-white">
+          <button disabled={switching} onClick={leave} title={t('nav.home')} aria-label={t('nav.home')} className="rounded-md p-2 text-white/45 hover:bg-white/[0.06] hover:text-white">
             <Home className="h-4 w-4" />
           </button>
         </div>
