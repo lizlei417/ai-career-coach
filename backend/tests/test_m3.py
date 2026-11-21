@@ -116,3 +116,14 @@ class M3Tests(unittest.IsolatedAsyncioTestCase):
         with patch('app.m3.complete_json',AsyncMock(return_value=ok({'requirements':items}))):
             out=await m3.job_match(b,'en');item=out['items'][0]
             self.assertEqual(len(item['assessments']),2);self.assertIn('First assessment',item['rationale']);self.assertIn('Second assessment',item['rationale']);self.assertEqual(item['status'],'partial')
+
+    async def test_null_citations_is_uncited_analysis_without_another_call(self):
+        b=await self.materials()
+        value=ok({'edits':[],'questions_to_student':[]});value['citations']=None
+        with patch('app.m3.complete_json',AsyncMock(return_value=value)) as model:
+            out=await m3.resume_optimize(b,'en');model.assert_awaited_once()
+            self.assertEqual(out['m3']['citations'],[]);self.assertEqual(out['m3']['protocol_warnings'],['citations_missing'])
+            self.assertFalse(any(s['used'] for s in out['guidance']['sources']))
+        value=ok({'edits':[],'questions_to_student':[]});value['citations']='invalid'
+        with patch('app.m3.complete_json',AsyncMock(return_value=value)):
+            with self.assertRaises(AppError):await m3.resume_optimize(b,'en')

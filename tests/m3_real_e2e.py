@@ -52,7 +52,16 @@ with sync_playwright() as pw:
   else:
    create(name)
    q=ctx.new_page();q.set_content(''.join('<section style="white-space:pre-wrap;break-after:page">'+x+'</section>' for x in RESUME_PAGES));pdf=q.pdf();q.close()
-   p.locator('input[type=file]').first.set_input_files({'name':'m3-fictional.pdf','mimeType':'application/pdf','buffer':pdf});expect(p.locator('#resume')).to_contain_text('END OF ORIGINAL RESUME');p.locator('#jd').fill(JD);p.locator('#jobtitle').fill('Marketing Assistant');nav('开始分析');expect(p.get_by_role('button',name='重新分析',exact=True)).to_be_disabled();save()
+   p.locator('input[type=file]').first.set_input_files({'name':'m3-fictional.pdf','mimeType':'application/pdf','buffer':pdf});expect(p.locator('#resume')).to_contain_text('END OF ORIGINAL RESUME');p.locator('#jd').fill(JD);p.locator('#jobtitle').fill('Marketing Assistant')
+   nav('预览');frame=p.locator('dialog iframe');frame.wait_for()
+   raw=frame.evaluate('async e=>Array.from(new Uint8Array(await(await fetch(e.src)).arrayBuffer()))');assert bytes(raw)==pdf
+   report['original_pdf_preview_exact_bytes']=True;p.locator('dialog').get_by_role('button',name='关闭',exact=True).click()
+   with p.expect_response(lambda r:r.url.endswith('/materials/prepare')) as preparation:nav('开始分析')
+   prepared=preparation.value.json();assert preparation.value.status==200,prepared;report['prepared_requirements']=prepared['requirements']
+   assert prepared['pipeline_version']=='m3-jd-sentences-v1'
+   assert any(q['text']=='Bachelor degree in Marketing or a related discipline.' for q in prepared['requirements'])
+   assert any(q['text']=='Clear written English and Cantonese communication.' for q in prepared['requirements'])
+   expect(p.get_by_role('button',name='重新分析',exact=True)).to_be_disabled();save()
    original=p.locator('#resume').input_value();report['checks'].append('PDF extraction and deterministic preparation')
    p.get_by_role('radio',name='EN',exact=True).click();nav('Resume Optimization')
    optimized=call('/resume/optimize','Generate rewrites');assert optimized['m3']['prompt_version']=='M3_Prompt_v1';assert optimized['guidance']['sources'];assert optimized['items'],'No real edits returned'
@@ -66,7 +75,7 @@ with sync_playwright() as pw:
   if stored and stored.get('match'):
    matched=stored['match']['data'];report['calls'].append({'route':'/api/match','status':200,'language':'zh-TW','reused_saved_actual_result':True})
   else:matched=call('/api/match','生成配對報告')
-  assert matched['guidance']['sources'];assert any(x['evidence'] for x in matched['items']);snap('match')
+  assert matched['guidance']['sources'];assert any(x['evidence'] for x in matched['items']);assert all(x.get('priority_code') in ('required','preferred','unspecified') for x in matched['items']);snap('match')
   p.get_by_role('radio',name='简',exact=True).click();nav('模拟面试')
   if stored and stored['interview']['turns']:
    question=stored['interview']['turns'][0]['question'];report['calls'].append({'route':'/interview/question','status':200,'language':'zh-CN','reused_saved_actual_result':True})
@@ -97,6 +106,9 @@ with sync_playwright() as pw:
    nav(name);expect(p.locator('#resume')).to_have_value(original);expect(p.locator('#jd')).to_have_value(JD);nav(second);expect(p.locator('#resume')).to_have_value(cv2);expect(p.locator('#jd')).to_have_value(jd2)
   p.reload();expect(p.locator('#resume')).to_have_value(cv2);expect(p.locator('#job-goal')).to_have_value('internship');nav(name);nav('模拟面试');expect(p.get_by_text(summary['next_session'],exact=True)).to_be_visible();save()
   report['checks'].append('Two projects analysed, saved, switched twice, reloaded; profiles, materials and interview restored')
+  nav('设置');p.get_by_role('textbox',name='检索测试',exact=True).fill('STAR framework peers feedback')
+  with p.expect_response(lambda r:r.url.endswith('/api/kb/search')) as retrieval:nav('检索测试')
+  hits=retrieval.value.json();assert retrieval.value.status==200,hits;assert 'workshop-01' in [h['chunk_id'] for h in hits['results']];report['retrieval_sources']=[h['chunk_id'] for h in hits['results']];snap('rag-settings')
   health=api('health');assert health['llm']['connection']=='verified';assert health['kb']['integrity'] and health['kb']['chunks']==18;report['health']=health;report['quota_after']=api('quota')
   if not HOSTED:
    reqs=ctx.request.get('http://127.0.0.1:28649/qa/control').json()['requests'];assert len(reqs)==len(report['calls']);assert all(x['chunk_ids'] for x in reqs);report['request_metadata']=reqs

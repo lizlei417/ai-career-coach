@@ -69,7 +69,7 @@
 |层级|结果|证据|
 |---|---|---|
 |接手后原始基线|33 项通过|tests/evidence/m3-baseline.log|
-|新增单元/接口测试|49 项通过|tests/evidence/m3-unit.log、unit-tests.log|
+|新增单元/接口测试|50 项通过|tests/evidence/m3-unit.log、unit-tests.log|
 |前端|TypeScript、Vite 构建通过|tests/evidence/m3-build.log；仅原有 bundle 大小提示|
 |完整 Mock 回归|竞态、API/RLS/10 次额度、浏览器主流程通过|tests/evidence/m3-release-final.log；e2e-results.json、race-results.json、api-integration.json|
 |真实 DeepSeek 本地|优化、匹配、提问、反馈、总结、第二项目匹配六次成功|tests/evidence/m3/local-results.json、raw-*.json、m3-real-app.log|
@@ -120,3 +120,5 @@ M3_HOSTED=1 "$PY" tests/m3_real_e2e.py
 新解析器有版本标记。旧项目仍可查看和导出原有结果；下一次主动生成会先刷新材料，防止用旧的要求编号解释新结果。新增浏览器用例验证旧存档缺少版本字段时保留结果，并在用户重新生成时刷新材料。原语料 workshop-01 与 workshop-02 有原始内容重叠，保留提供方片段；所有 chunk_id 唯一，每个只索引一次。
 
 匹配界面按正式返回的 required/preferred/unspecified 分组，明确必备条件先于优先条件；不再用准备阶段的粗分类覆盖模型优先级。历史结果没有 priority_code 时继续使用原来的分类显示。
+
+最终完整线上流程在 215e5bc 上通过（见 hosted-results.json）：6 次成功分析及一次被拒绝的格式响应，测试账户额度 0→7，原始 PDF 预览字节一致、双项目、三语言、导出和检索均通过。首次匹配错误的安全诊断明确为 status=ok、result=dict、citations=None；不推断早先两次总结具有相同原因。针对这一已证实的问题，最后补丁将 null/缺失 citations 仅归一为 []，记录 protocol_warnings=citations_missing，所有来源 used=false；不编造引用、不补写分析内容，也不额外调用模型。非数组引用或不合法正文仍拒绝。针对性测试证明只调用一次模型，最终补丁部署与真实抽检另见末尾。

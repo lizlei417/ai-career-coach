@@ -109,6 +109,13 @@ async def call(task, b, lang, *, action="start", history=None, answer="", extra=
         # The message is still returned in detail; frontend provides a localized
         # recovery hint. No success result is saved for an incomplete analysis.
         raise AppError("M3_NEEDS_INPUT", 422)
+    protocol_warnings = []
+    if out.get("status") == "ok" and isinstance(out.get("result"), dict) and out.get("citations") is None:
+        # An absent/null citation means no attributable claim. Preserve the real
+        # analysis; never invent a citation or spend another call for metadata.
+        out["citations"] = []
+        protocol_warnings.append("citations_missing")
+        logging.getLogger("coach.m3").info("empty citations normalized task=%s", task)
     if out.get("status") != "ok" or not isinstance(out.get("result"), dict) or not isinstance(out.get("citations"), list):
         diagnostic = {"status_ok": out.get("status")=="ok", "result_type": type(out.get("result")).__name__,
                       "citations_type": type(out.get("citations")).__name__}
@@ -121,7 +128,7 @@ async def call(task, b, lang, *, action="start", history=None, answer="", extra=
          "source_url": c["source_url"], "evidence_type": c["evidence_type"],
          "used": any(x["chunk_id"] == c["chunk_id"] for x in citations),
          "claims": [x["claim"] for x in citations if x["chunk_id"] == c["chunk_id"]]} for c in chunks]}
-    return out["result"], guidance, {"status": "ok", "message": str(out.get("message") or ""), "citations": citations, "prompt_version": "M3_Prompt_v1"}
+    return out["result"], guidance, {"status": "ok", "message": str(out.get("message") or ""), "citations": citations, "protocol_warnings": protocol_warnings, "prompt_version": "M3_Prompt_v1"}
 
 
 def bundle(materials, lang):
