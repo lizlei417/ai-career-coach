@@ -198,6 +198,8 @@ async def resume_optimize(materials: dict, lang: str) -> dict:
         _guidance_block(guidance),
     ])
     out = await complete_json(system, user)
+    if not isinstance(out.get("items"), list):
+        raise AppError(errors.AI_FORMAT, 502)
 
     items, hidden = [], 0
     used_sources = set()
@@ -270,6 +272,8 @@ async def job_match(materials: dict, lang: str) -> dict:
         _guidance_block(guidance),
     ])
     out = await complete_json(system, user)
+    if not isinstance(out.get("items"), list):
+        raise AppError(errors.AI_FORMAT, 502)
 
     items: dict[str, dict] = {}
     for it in out.get("items") or []:
@@ -331,7 +335,11 @@ async def interview_question(materials: dict, lang: str, asked: list[dict], targ
     b = _validate_bundle(materials)
     facts = _facts_index(b)
     reqs = {r["id"]: r for r in b["requirements"]}
-    asked_txt = "\n".join(f"- ({a.get('requirement_id', '')}) {str(a.get('question', ''))[:300]}" for a in (asked or [])[-12:])
+    asked_txt = json.dumps([
+        {"question": str(a.get("question", ""))[:300], "requirement_id": str(a.get("requirement_id", ""))[:32],
+         "answer": str(a.get("answer", ""))[:600], "feedback": str(a.get("feedback", ""))[:240]}
+        for a in (asked or [])[-8:]
+    ], ensure_ascii=False)
     target = target_requirement if target_requirement in reqs else ""
     guidance = _retrieve(f"interview question {b['job_title']} " + (reqs[target]["text"] if target else ""), k=3)
 
@@ -387,6 +395,8 @@ async def interview_feedback(materials: dict, lang: str, question: dict, answer:
         _guidance_block(guidance),
     ])
     out = await complete_json(system, user)
+    if not isinstance(out.get("action"), str):
+        raise AppError(errors.AI_FORMAT, 502)
 
     on_topic, dropped = [], 0
     for o in out.get("on_topic") or []:
@@ -429,6 +439,8 @@ async def interview_summary(lang: str, turns: list[dict]) -> dict:
         }, ensure_ascii=False))
     system = load_prompt("interview_summary", lang)
     out = await complete_json(system, "<session>\n" + "\n".join(session) + "\n</session>")
+    if not isinstance(out.get("priorities"), list):
+        raise AppError(errors.AI_FORMAT, 502)
     n = len(turns)
 
     def clean(lst):
