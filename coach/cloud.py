@@ -63,6 +63,8 @@ def counts(db):
 
 
 def reserve_call():
+    if os.getenv("AI_REQUESTS_ENABLED","true").lower() not in ("true","1"):
+        raise HTTPException(503,"AI requests temporarily paused")
     with connect() as db:
         db.execute("select pg_advisory_xact_lock(94576123)")
         status = counts(db)
@@ -222,9 +224,9 @@ async def verify(credential):
                 401 if result.status_code in (401, 403) else 503, "Session unavailable"
             )
         user = result.json()
-        if user.get("app_metadata", {}).get("coach_member") is not True:
-            raise HTTPException(403, "Invitation required")
-        return str(UUID(user["id"])), user["app_metadata"].get("coach_admin") is True
+        if not user.get("email_confirmed_at") or user.get("is_anonymous") is True:
+            raise HTTPException(403, "Verified email required")
+        return str(UUID(user["id"])), user.get("app_metadata",{}).get("coach_admin") is True
     except (ValueError, KeyError, httpx.HTTPError):
         raise HTTPException(503, "Authentication unavailable") from None
 

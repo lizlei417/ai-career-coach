@@ -1,4 +1,4 @@
-import { AuthGate, ownerKey, savedState, saveState } from './cloud'
+import { AuthGate, publicHome, authLanguage, ownerKey, savedState, saveState } from './cloud'
 import {sample} from "./pages-demo";
 import { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
@@ -50,12 +50,12 @@ function sameSources(a: Materials, b: Materials) {
 }
 function App() {
   const [lang, setLang] = useState<Lang>(() => {
-    const v = localStorage.getItem("career-language");
+    const v = authLanguage;
     return v && v in langs ? (v as Lang) : (import.meta.env.VITE_PAGES_DEMO === "1" ? "zh-CN" : "en");
   });
   const [strings, setStrings] = useState<Strings>(ui),
     [status, setStatus] = useState<Status | null>(null);
-  const [entered, enter] = useState(false),
+  const [entered, enter] = useState(true),
     [view, setView] = useState<View>("optimize");
   const [draft, setDraft] = useState<Materials>(emptyMaterials),
     [project, setProject] = useState<Project | null>(null);
@@ -103,13 +103,7 @@ function App() {
     sessionStorage.setItem(ownerKey("career-workspace"), "1");
     window.scrollTo(0, 0);
   }
-  function goHome() {
-    enter(false);
-    setMenu(false);
-    showSettings(false);
-    sessionStorage.setItem(ownerKey("career-workspace"), "home");
-    window.scrollTo(0, 0);
-  }
+  function goHome() { publicHome() }
   function restore(p: Project) {
     setProject(p);
     setDraft(p.materials);
@@ -133,11 +127,7 @@ function App() {
         }
       }
       if(savedState?.materials)setDraft(savedState.materials);
-      const location = sessionStorage.getItem(ownerKey("career-workspace"));
-      enter(
-        location === "1" ||
-          (!location && !!sessionStorage.getItem(ownerKey("career-project"))),
-      );
+      enter(true);
       setStatus(boot.status);
     } catch (e) {
       setErr(e);
