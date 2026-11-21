@@ -1,5 +1,7 @@
 # V3 Render 人工验收入口
 
+最新增量：JD 链接导入修复 `bbe78f0` 已上线，详见 [修复与线上验收](V3-JD-IMPORT-AUDIT.md)。以下保留最初 V3 发布记录。
+
 用户于 2026-11-22 明确授权部署后，V3 已发布到现有 Render 服务，在原站点新增独立 `/v3/` 入口。
 
 - 验收地址：https://ai-career-coach-three-versions.onrender.com/v3/

@@ -4,6 +4,7 @@ V3 从 V2 提交 `b176cccb5121b783d7a163fafc9a7ae30218275c` 独立开发，分�
 
 本轮补齐了逐条审核到完整简历的确定性合成、在线全文预览、PDF/DOCX 导出，并修复过期结果恢复入口、分析快照、保存失败恢复及语言持久化。原始上传 PDF 和简历输入不会被优化流程覆盖。
 
+- [JD 链接导入修复与线上验收](deploy/V3-JD-IMPORT-AUDIT.md)
 - [完整审计报告](deploy/V3-AUDIT-REPORT.md)
 - [测试方法和证据](tests/README.md)
 - [V3 部署注意事项](deploy/V3-DEPLOYMENT.md)
