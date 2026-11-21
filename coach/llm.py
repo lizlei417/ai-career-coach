@@ -1,3 +1,5 @@
+from . import cloud
+import asyncio
 import json
 import logging
 from typing import TypeVar
@@ -28,6 +30,7 @@ class AIClient:
         content = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
         if len(content) + len(instruction) > 64000:
             raise CoachError("输入过长，请精简材料或面试记录。")
+        call=cloud.reserve_call()
         try:
             response = self.client.chat.completions.create(
                 model=self.config.model,
@@ -37,6 +40,7 @@ class AIClient:
             )
             self.usage = {key: getattr(response.usage, key, None) for key in
                           ("prompt_tokens", "completion_tokens", "total_tokens")} if response.usage else {}
+            cloud.record_usage(call,self.usage.get("total_tokens"))
             choice = response.choices[0]
             if choice.finish_reason != "stop" or not choice.message.content:
                 raise CoachError("模型输出格式未通过校验，结果未展示，请重新分析。")
@@ -58,6 +62,7 @@ class AIClient:
         except openai.APIStatusError as exc:
             if exc.status_code == 402:
                 balance_blocked = True
+                cloud.record_usage(call,blocked=True)
                 raise CoachError("余额不足，请充值后重启服务。") from None
             raise CoachError("AI 服务暂时不可用，当前操作尚未提交，请稍后重试。") from None
         except openai.APIError:

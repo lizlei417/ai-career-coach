@@ -37,7 +37,7 @@ awaitJd|Add the responsibilities and qualifications|添加岗位职责与任职�
 materialsChanged|Materials have changed. Analyze again to update your results and start a fresh interview.|材料已修改。重新分析后将更新结果并重置面试记录。|資料已修改。重新分析後將更新結果並重設面試記錄。
 viewInterview|View interview|查看本次面试|查看本次面試
 sessionHeading|Current session|当前会话|目前工作階段
-sessionPrivacy|Submitted materials and results stay in server memory for up to eight hours of inactivity. Unsubmitted drafts stay on this page.|已提交材料和结果保存在服务内存中，闲置八小时后过期。未提交的草稿保留在当前页面。|已提交資料和結果保存在服務記憶體中，閒置八小時後過期。未提交的草稿保留在目前頁面。
+sessionPrivacy|Materials and results are saved to your private Claude workspace.|材料和结果保存在你的 Claude 私人工作区。|資料與結果儲存在你的 Claude 私人工作區。
 clearWorkspace|Clear workspace|清空工作台|清空工作台
 clearWorkspaceConfirm|Clear all materials, results and interview answers from this session?|清除本次会话的所有材料、分析结果和面试回答？|清除本次工作階段的所有資料、分析結果及面試回答？
 expiredRetry|The session expired. Your inputs are still here. Run the analysis again.|会话已过期，输入的材料仍在。请重新分析。|工作階段已過期，輸入的資料仍在。請重新分析。

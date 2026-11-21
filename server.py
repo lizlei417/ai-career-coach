@@ -1,16 +1,18 @@
 """Same-origin API for the local career workspace. One process owns session memory."""
-import secrets
-import time
+from fastapi.encoders import jsonable_encoder
+from fastapi import HTTPException
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from threading import Lock
 from typing import Literal
 
+from urllib.parse import urlsplit
+from starlette._utils import get_route_path
 from fastapi import Body, FastAPI, Header, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.concurrency import run_in_threadpool
 
 from coach.config import ROOT, settings
@@ -19,7 +21,7 @@ from coach.i18n import LANGUAGES, STRINGS
 from coach.job_links import import_job
 from coach.knowledge import KnowledgeBase
 from coach.llm import AIClient
-from coach.models import Context, Turn
+from coach.models import Context, Turn, Optimization, Matching, Question, Feedback, Guide, InterviewSummary
 from coach.parsing import fingerprint, pdf_text, sources, validate_text
 from coach.presentation import ObservedClient, connection_state
 from coach.service import CareerCoach
@@ -27,6 +29,9 @@ from coach.state import new_interview
 from coach.web_errors import translations
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+from coach import cloud
+cloud.install(app)
+
 Language = Literal["en", "zh-CN", "zh-TW"]
 
 
@@ -61,36 +66,48 @@ class Project:
     decisions: dict = field(default_factory=dict)
     observed: dict = field(default_factory=dict)
     version: int = 0
-    touched: float = field(default_factory=time.monotonic)
-    lock: Lock = field(default_factory=Lock)
 
-
-projects = {}
-registry = Lock()
 EXPIRED = "项目已过期，请重新创建。"
 STALE = "请刷新页面以加载最新状态。"
 STAGE = "当前面试阶段无法执行此操作。"
 
 
-def prune():
-    for token, p in list(projects.items()):
-        if time.monotonic() - p.touched > 8 * 3600 and not p.lock.locked():
-            del projects[token]
+def snapshot(p, revision):
+    state = jsonable_encoder({k:getattr(p,k) for k in
+        ("materials","context","optimization","matching","interview","decisions","version")})
+    return cloud.Snapshot(name=p.materials.name,revision=revision,state=state)
+
+
+def unpack(group, model):
+    if group:
+        group["data"]=model.model_validate(group["data"])
+        group["guides"]=[Guide.model_validate(g) for g in group["guides"]]
+    return group
 
 
 @contextmanager
-def project_for(token):
-    with registry:
-        prune()
-        p = projects.get(token)
-        if p is None:
-            raise CoachError(EXPIRED)
-        p.touched = time.monotonic()
-    with p.lock:
-        with registry:
-            if projects.get(token) is not p:
-                raise CoachError(EXPIRED)
-        yield p
+def project_for(token, write=False):
+    try:
+        record=cloud.read("workspace")
+    except HTTPException as error:
+        if error.status_code==404: raise CoachError(EXPIRED) from None
+        raise
+    data=record["state"]
+    data["materials"]=Materials.model_validate(data["materials"])
+    if data["context"]: data["context"]=Context.model_validate(data["context"])
+    unpack(data["optimization"],Optimization)
+    unpack(data["matching"],Matching)
+    iv=data["interview"]
+    for key,model in (("question",Question),("feedback",Feedback)):
+        if iv[key]: iv[key]=model.model_validate(iv[key])
+    for key in ("guides","feedbackGuides"):
+        iv[key]=[Guide.model_validate(g) for g in iv.get(key,[])]
+    iv["turns"]=[Turn.model_validate(t) for t in iv["turns"]]
+    iv["sourceArchive"]={k:Guide.model_validate(v) for k,v in iv.get("sourceArchive",{}).items()}
+    unpack(iv.get("summary"),InterviewSummary)
+    p=Project(**data)
+    yield p
+    if write: cloud.save("workspace",snapshot(p,record["revision"]))
 
 
 model_observation = {}
@@ -140,12 +157,12 @@ async def invalid_input(request, exc):
 
 @app.middleware("http")
 async def private_api(request: Request, call_next):
-    if request.url.path.startswith("/api/"):
+    if get_route_path(request.scope).startswith("/api/"):
         origin = request.headers.get("origin")
-        if request.method != "GET" and origin and origin != str(request.base_url).rstrip("/"):
+        if request.method != "GET" and origin and urlsplit(origin).netloc != request.headers.get("host"):
             return JSONResponse({}, status_code=403)
     response = await call_next(request)
-    if request.url.path.startswith("/api/"):
+    if get_route_path(request.scope).startswith("/api/"):
         response.headers["Cache-Control"] = "no-store"
     response.headers["X-Content-Type-Options"] = "nosniff"
     return response
@@ -181,7 +198,8 @@ async def read_pdf(request: Request):
         data.extend(part)
         if len(data) > 10 * 1024 * 1024:
             raise CoachError("PDF 超过 10 MB，请压缩或粘贴简历正文。")
-    return {"text": await run_in_threadpool(pdf_text, bytes(data))}
+    text=await run_in_threadpool(pdf_text, bytes(data))
+    return {"text":text,"file_id":await run_in_threadpool(cloud.store_pdf,"workspace",bytes(data))}
 
 
 @app.post("/api/import")
@@ -206,13 +224,8 @@ def checked(m):
 @app.post("/api/project")
 def create(m: Materials):
     p = Project(checked(m))
-    token = secrets.token_urlsafe(32)
-    with registry:
-        prune()
-        if len(projects) >= 128:
-            raise CoachError("当前项目数量已满，请稍后重试。")
-        projects[token] = p
-    return {"token": token, "project": view(p)}
+    cloud.save("workspace",snapshot(p,0))
+    return {"token":"workspace","project":view(p)}
 
 
 @app.get("/api/project")
@@ -224,7 +237,7 @@ def current(x_project: str = Header(default="")):
 @app.put("/api/project")
 def update(m: Materials, version: int, x_project: str = Header(default="")):
     m = checked(m)
-    with project_for(x_project) as p:
+    with project_for(x_project,write=True) as p:
         if version != p.version:
             raise CoachError(STALE)
         if (m.resume, m.jd) != (p.materials.resume, p.materials.jd):
@@ -237,9 +250,7 @@ def update(m: Materials, version: int, x_project: str = Header(default="")):
 
 @app.delete("/api/project")
 def clear(x_project: str = Header(default="")):
-    with project_for(x_project):
-        with registry:
-            del projects[x_project]
+    cloud.erase("workspace")
     return {"ok": True}
 
 
@@ -283,7 +294,7 @@ def interview_action(p, a, coach):
 
 @app.post("/api/action")
 def act(a: Action, x_project: str = Header(default="")):
-    with project_for(x_project) as p:
+    with project_for(x_project,write=True) as p:
         if p.version != a.version:
             raise CoachError(STALE)
         if a.kind == "decision":
@@ -312,5 +323,12 @@ def illustration():
     return FileResponse(ROOT / "assets/atrium.svg", media_type="image/svg+xml")
 
 
-app.mount("/", StaticFiles(directory=ROOT / "frontend/dist", html=True, check_dir=False), name="web")
+class WorkspaceFiles(StaticFiles):
+    async def get_response(self,path,scope):
+        try:
+            return await super().get_response(path,scope)
+        except StarletteHTTPException as exc:
+            if exc.status_code!=404 or path.startswith("api/") or "." in path.rsplit("/",1)[-1]: raise
+            return await super().get_response("index.html",scope)
 
+app.mount("/",WorkspaceFiles(directory=ROOT/"frontend/dist",html=True,check_dir=False),name="web")

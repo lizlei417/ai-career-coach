@@ -6,7 +6,9 @@ from unittest.mock import patch
 import httpx
 import openai
 from fastapi.testclient import TestClient
-from server import app
+from server import app, cloud
+from fastapi import HTTPException
+import copy
 
 
 class DeepSeekActions(unittest.TestCase):
@@ -37,7 +39,18 @@ class DeepSeekActions(unittest.TestCase):
             self.assertEqual(kwargs["max_retries"],0)
             return original(**kwargs,http_client=httpx.Client(transport=httpx.MockTransport(respond)))
 
-        with patch.dict("os.environ",{"DEEPSEEK_API_KEY":"synthetic-only"}), patch.object(openai,"OpenAI",sdk), TestClient(app) as client:
+        records={}
+        def put(key,body):
+            records[key]={"revision":body.revision+1,"state":copy.deepcopy(body.state)}
+        def get(key):
+            if key not in records: raise HTTPException(404)
+            return copy.deepcopy(records[key])
+        self.addCleanup(patch.stopall)
+        for name,value in {"verify":("00000000-0000-4000-8000-000000000001",False),"reserve_call":1,"record_usage":None}.items():
+            patch.object(cloud,name,return_value=value).start()
+        patch.object(cloud,"read",side_effect=get).start()
+        patch.object(cloud,"save",side_effect=put).start()
+        with patch.dict("os.environ",{"DEEPSEEK_API_KEY":"synthetic-only"}), patch.object(openai,"OpenAI",sdk), TestClient(app,headers={"Authorization":"Bearer offline-test"}) as client:
             self.assertEqual(client.get("/api/bootstrap").json()["status"]["connection"],"unverified")
             created = client.post("/api/project",json={"role":"Analyst","name":"Test","resume":"Built a dashboard for a fictional student research team.","jd":"We need dashboard analysis and communication experience."}).json()
             headers = {"X-Project":created["token"]}

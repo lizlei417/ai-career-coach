@@ -1,3 +1,4 @@
+import {apiFetch,ownerKey} from './cloud'
 import { demoApi } from "./pages-demo";
 import type { Lang } from "./types";
 export class ApiError extends Error {
@@ -14,13 +15,13 @@ export async function api<T>(
   body?: unknown,
 ): Promise<T> {
   if (import.meta.env.VITE_PAGES_DEMO === "1") return demoApi(path, method, body) as T;
-  const token = sessionStorage.getItem("career-project");
+  const token = sessionStorage.getItem(ownerKey("career-project"));
   const headers: Record<string, string> = {};
   if (token) headers["X-Project"] = token;
   const isFile = body instanceof Blob;
   if (body !== undefined)
     headers["Content-Type"] = isFile ? "application/pdf" : "application/json";
-  const response = await fetch("/api/" + path, {
+  const response = await apiFetch("/api/" + path, {
     method,
     headers,
     body: body === undefined ? undefined : isFile ? body : JSON.stringify(body),

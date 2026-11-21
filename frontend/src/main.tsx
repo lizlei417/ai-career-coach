@@ -1,3 +1,4 @@
+import { AuthGate, ownerKey, savedState, saveState } from './cloud'
 import {sample} from "./pages-demo";
 import { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
@@ -99,14 +100,14 @@ function App() {
   };
   function goWorkspace() {
     enter(true);
-    sessionStorage.setItem("career-workspace", "1");
+    sessionStorage.setItem(ownerKey("career-workspace"), "1");
     window.scrollTo(0, 0);
   }
   function goHome() {
     enter(false);
     setMenu(false);
     showSettings(false);
-    sessionStorage.setItem("career-workspace", "home");
+    sessionStorage.setItem(ownerKey("career-workspace"), "home");
     window.scrollTo(0, 0);
   }
   function restore(p: Project) {
@@ -121,19 +122,21 @@ function App() {
         privacyShort: ["Scripted demo · materials stay in this tab.", "预设演示 · 材料仅保存在当前标签页。", "預設演示 · 材料僅保存在目前分頁。"],
         sessionPrivacy: ["Submitted sample materials and results stay in this browser tab.", "已提交的示例材料与结果仅保存在当前浏览器标签页。", "已提交的範例材料與結果僅保存在目前瀏覽器分頁。"],
       } : {}) });
-      if (sessionStorage.getItem("career-project")) {
+      {
         try {
           restore(await api<Project>("project"));
+          sessionStorage.setItem(ownerKey("career-project"),"workspace");
         } catch (e) {
           if (e instanceof ApiError && e.status === 410)
-            sessionStorage.removeItem("career-project");
+            sessionStorage.removeItem(ownerKey("career-project"));
           else throw e;
         }
       }
-      const location = sessionStorage.getItem("career-workspace");
+      if(savedState?.materials)setDraft(savedState.materials);
+      const location = sessionStorage.getItem(ownerKey("career-workspace"));
       enter(
         location === "1" ||
-          (!location && !!sessionStorage.getItem("career-project")),
+          (!location && !!sessionStorage.getItem(ownerKey("career-project"))),
       );
       setStatus(boot.status);
     } catch (e) {
@@ -172,7 +175,7 @@ function App() {
   }
   function change(part: Partial<Materials>) {
     setErr(null);
-    setDraft((m) => ({ ...m, ...part }));
+    const materials={...draft,...part};setDraft(materials);void saveState({materials}).catch(()=>{});
   }
   async function ensureMaterials() {
     if (
@@ -206,7 +209,7 @@ function App() {
         "POST",
         m,
       );
-      sessionStorage.setItem("career-project", created.token);
+      sessionStorage.setItem(ownerKey("career-project"), created.token);
       p = created.project;
     }
     restore(p);
@@ -214,13 +217,13 @@ function App() {
   }
   async function reconcile(e: unknown) {
     if (e instanceof ApiError && e.status === 410) {
-      sessionStorage.removeItem("career-project");
+      sessionStorage.removeItem(ownerKey("career-project"));
       setProject(null);
       setErr("expiredRetry");
       return;
     }
     setErr(e);
-    if (sessionStorage.getItem("career-project")) {
+    if (sessionStorage.getItem(ownerKey("career-project"))) {
       try {
         setProject(await api<Project>("project"));
       } catch {
@@ -289,7 +292,8 @@ function App() {
     if (!confirm(t("clearWorkspaceConfirm"))) return;
     setWorking("clear");
     try {
-      if (project) await api("project", "DELETE");
+      await saveState({});
+      await api("project", "DELETE");
     } catch (e) {
       if (!(e instanceof ApiError && e.status === 410)) {
         setErr(e);
@@ -298,7 +302,7 @@ function App() {
     } finally {
       setWorking("");
     }
-    sessionStorage.removeItem("career-project");
+    sessionStorage.removeItem(ownerKey("career-project"));
     setProject(null);
     setDraft({ ...emptyMaterials });
     resetEditor((n) => n + 1);
@@ -616,4 +620,4 @@ function App() {
     </>
   );
 }
-createRoot(document.getElementById("root")!).render(<App />);
+createRoot(document.getElementById("root")!).render(<AuthGate><App /></AuthGate>);
