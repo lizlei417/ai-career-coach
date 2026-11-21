@@ -1,6 +1,6 @@
 # AI Career Coach GPT V3
 
-V3 从 V2 提交 `b176cccb5121b783d7a163fafc9a7ae30218275c` 独立开发，分支为 `codex/v3-career-audit`。V2 代码已恢复并存档，V1 与 Claude 未修改。本版本尚未推送或部署到 Render。
+V3 从 V2 提交 `b176cccb5121b783d7a163fafc9a7ae30218275c` 独立开发，分支为 `codex/v3-career-audit`。V2 代码已恢复并存档，V1 与 Claude 未修改。本版本已在用户授权后部署，人工验收入口为 https://ai-career-coach-three-versions.onrender.com/v3/ ，详见 [线上验收记录](deploy/V3-LIVE-ACCEPTANCE.md)。
 
 本轮补齐了逐条审核到完整简历的确定性合成、在线全文预览、PDF/DOCX 导出，并修复过期结果恢复入口、分析快照、保存失败恢复及语言持久化。原始上传 PDF 和简历输入不会被优化流程覆盖。
 

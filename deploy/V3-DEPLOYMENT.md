@@ -1,6 +1,6 @@
 # V3 deployment preparation
 
-This is a local, reviewed implementation, not a production deployment. No Render deployment, Git push, hosted database migration, credential change or real-user data mutation was performed in this audit.
+Historical pre-deployment plan: after this audit, the user explicitly authorized deployment. V3 is now live as /v3/ on the existing service, preserving the old application routes. See [V3-LIVE-ACCEPTANCE.md](V3-LIVE-ACCEPTANCE.md) for the authoritative deployment record. The independent preview-service blueprint below remains an optional alternative and was not applied. No hosted schema migration, credential change or real-user data mutation was performed.
 
 V3 is on `codex/v3-career-audit`. `render.yaml` names a separate `career-coach-v3-preview` service with automatic deployment off, so it does not target the existing production service. Before deploying, publish/review that branch and validate the actual Docker image in a staging service. Docker was unavailable locally; the four-app Python gateway and each app's HTML/assets/auth boundary were exercised locally, but the Render image build was not.
 
