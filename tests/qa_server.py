@@ -27,9 +27,15 @@ async def confirm(r: Request):
     fixture.users[(await r.json())['email']]['email_confirmed_at']='2026-11-22T00:00:00Z'
     return {'ok': True, 'mode':'synthetic email confirmation'}
 from app.main import app as v2
-from app import llm, materials
-public_host = materials._host_is_public
-materials._host_is_public = lambda host: host == 'qa-careers.example.test' or public_host(host)
+from app import llm, job_import
+original_resolve = job_import.PublicResolver.addresses
+async def fixture_resolve(self, host, port):
+    if host == 'qa-careers.example.test': return ['93.184.216.34']
+    return await original_resolve(self, host, port)
+job_import.PublicResolver.addresses = fixture_resolve
+if os.environ.get('QA_PUBLIC_DNS') == '1':
+    from public_dns import PublicDNSResolver
+    job_import.PublicResolver = PublicDNSResolver
 control = {'failure':None, 'delay':0, 'calls':0}
 async def set_control(r: Request):
     control.update(await r.json()); return control
@@ -38,7 +44,7 @@ class ModelTransport(httpx.AsyncBaseTransport):
     def __init__(self): self.network = httpx.AsyncHTTPTransport()
     async def handle_async_request(self, request):
         if request.url.host == 'qa-careers.example.test':
-            return httpx.Response(200, headers={'content-type':'text/html'}, text='<main><h1>QA Marketing Assistant</h1><p>Support marketing campaigns, prepare weekly campaign reports using Excel, maintain content calendars and coordinate campus communications. Entry level applicants with strong written English and teamwork skills are welcome.</p></main>')
+            return httpx.Response(200, headers={'content-type':'text/html'}, text='<main><h1>QA Marketing Assistant</h1><h2>Responsibilities</h2><p>Support marketing campaigns, prepare weekly campaign reports using Excel, maintain content calendars and coordinate campus communications. Entry level applicants with strong written English and teamwork skills are welcome.</p></main>')
         if request.url.host != 'api.deepseek.com': return await self.network.handle_async_request(request)
         control['calls'] += 1
         await asyncio.sleep(control['delay'])
@@ -61,7 +67,7 @@ class ModelTransport(httpx.AsyncBaseTransport):
     async def aclose(self):await self.network.aclose()
 if os.environ.get('QA_REAL_MODEL') != '1':
     original=httpx.AsyncClient
-    httpx.AsyncClient=lambda **kw: original(transport=ModelTransport(), **kw)
+    httpx.AsyncClient=lambda **kw: original(**kw) if os.environ.get('QA_REAL_JD_IMPORT') == '1' and isinstance(kw.get('transport'), job_import.PublicTransport) else original(transport=ModelTransport(), **{k:v for k,v in kw.items() if k != 'transport'})
 root=FastAPI()
 root.add_api_route('/qa/control', set_control, methods=['POST'])
 root.add_api_route('/qa/control', get_control, methods=['GET'])

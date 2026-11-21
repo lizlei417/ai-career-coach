@@ -17,6 +17,7 @@ export interface Inputs {
   jdText: string
   jdUrl: string
   jdFromUrl: boolean
+  jdSourceUrl?: string
 }
 
 interface Stamped<T> {

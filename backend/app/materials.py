@@ -7,13 +7,8 @@ exact source line id (R3, J7, S1 ...).
 from __future__ import annotations
 
 import io
-import ipaddress
 import re
-import socket
-from urllib.parse import urlparse, urljoin
 
-import httpx
-from bs4 import BeautifulSoup
 from pypdf import PdfReader
 
 from . import errors
@@ -72,73 +67,7 @@ def normalize_text(text: str) -> str:
 
 # ---------------------------------------------------------------- URL import
 
-def _host_is_public(host: str) -> bool:
-    try:
-        infos = socket.getaddrinfo(host, None)
-    except socket.gaierror:
-        return False
-    for info in infos:
-        ip = ipaddress.ip_address(info[4][0])
-        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast:
-            return False
-    return True
-
-
-async def fetch_job_posting(url: str) -> dict:
-    url = (url or "").strip()
-    parsed = urlparse(url)
-    if parsed.scheme not in ("http", "https") or not parsed.netloc:
-        raise AppError(errors.URL_INVALID, 422)
-    if not _host_is_public(parsed.hostname or ""):
-        raise AppError(errors.URL_FETCH_FAILED, 422, "host not reachable")
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36",
-        "Accept-Language": "en,zh-CN;q=0.9,zh-TW;q=0.8",
-    }
-    try:
-        async with httpx.AsyncClient(timeout=15, follow_redirects=False, headers=headers) as client:
-            for _ in range(6):
-                target = urlparse(url)
-                if target.scheme not in ('http', 'https') or not _host_is_public(target.hostname or ''):
-                    raise AppError(errors.URL_FETCH_FAILED, 422)
-                async with client.stream('GET', url) as response:
-                    if response.is_redirect:
-                        url = urljoin(url, response.headers.get('location', ''))
-                        continue
-                    data = bytearray()
-                    async for chunk in response.aiter_bytes():
-                        data.extend(chunk)
-                        if len(data) > MAX_UPLOAD_BYTES:
-                            raise AppError(errors.URL_NO_CONTENT, 422)
-                    resp = httpx.Response(response.status_code, headers=response.headers, content=bytes(data))
-                    break
-            else:
-                raise AppError(errors.URL_FETCH_FAILED, 422)
-    except httpx.HTTPError:
-        raise AppError(errors.URL_FETCH_FAILED, 422)
-    if resp.status_code >= 400:
-        raise AppError(errors.URL_FETCH_FAILED, 422, f"status {resp.status_code}")
-    ctype = resp.headers.get("content-type", "")
-    if "pdf" in ctype:
-        out = pdf_to_text(resp.content)
-        return {"text": out["text"], "title": ""}
-    if "html" not in ctype and "text" not in ctype:
-        raise AppError(errors.URL_NO_CONTENT, 422)
-    soup = BeautifulSoup(resp.text, "html.parser")
-    title = (soup.title.string or "").strip() if soup.title and soup.title.string else ""
-    for tag in soup(["script", "style", "noscript", "nav", "footer", "header", "svg", "form", "iframe"]):
-        tag.decompose()
-    main = soup.find("main") or soup.find("article") or soup.body or soup
-    lines = []
-    for el in main.find_all(["h1", "h2", "h3", "h4", "p", "li", "dt", "dd"]):
-        t = el.get_text(" ", strip=True)
-        if t and (not lines or lines[-1] != t):
-            lines.append(("• " + t) if el.name == "li" else t)
-    text = normalize_text("\n".join(lines)) if lines else normalize_text(main.get_text("\n", strip=True))
-    if len(re.sub(r"\s+", "", text)) < 120:
-        # JS-rendered pages or login walls usually end up here
-        raise AppError(errors.URL_NO_CONTENT, 422)
-    return {"text": text[:MAX_TEXT_CHARS], "title": title[:160]}
+from .job_import import fetch_job_posting
 
 
 # ---------------------------------------------------------------- segmentation

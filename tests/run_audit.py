@@ -13,7 +13,7 @@ with psycopg.connect(url) as db:
  if db.execute('show server_encoding').fetchone()[0]!='UTF8':raise SystemExit('UTF8 server encoding required')
  for name in ['001_private.sql','003_account_quota.sql']:db.execute((ROOT/'deploy'/name).read_text())
 env=dict(os.environ,DATABASE_URL=url,SUPABASE_URL='http://127.0.0.1:28648',SUPABASE_PUBLISHABLE_KEY='sb_publishable_offline',SUPABASE_SECRET_KEY='sb_secret_offline',DEEPSEEK_API_KEY='offline-test-only')
-env.pop('QA_REAL_MODEL',None);env.pop('QA_APP_ROOT',None);env.pop('FRONTEND_DIST',None)
+env.pop('QA_REAL_JD_IMPORT',None);env.pop('QA_PUBLIC_DNS',None);env.pop('QA_REAL_MODEL',None);env.pop('QA_APP_ROOT',None);env.pop('FRONTEND_DIST',None)
 processes=[]
 def launch(kind,port):
  with socket.socket() as s:

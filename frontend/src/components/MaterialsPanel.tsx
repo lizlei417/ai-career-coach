@@ -62,9 +62,11 @@ export default function MaterialsPanel() {
     onFile(e.dataTransfer.files?.[0])
   }
   const importUrl = async () => {
-    const out = await run('url', () => post<{ text: string; title: string }>('/api/extract/url', { url: inputs.jdUrl }))
+    if (busy.url) return
+    const sourceUrl = inputs.jdUrl.trim()
+    const out = await run('url', () => post<{ text: string; title: string; url?: string }>('/api/extract/url', { url: sourceUrl }))
     if (out) {
-      setInputs({ jdText: out.text, jdFromUrl: true, jobTitle: inputs.jobTitle || out.title.slice(0, 80) })
+      setInputs({ jdText: out.text, jdFromUrl: true, jdSourceUrl: out.url || sourceUrl, jobTitle: inputs.jobTitle || out.title.slice(0, 80) })
       setShowUrl(false)
     }
   }
@@ -162,7 +164,7 @@ export default function MaterialsPanel() {
           <label htmlFor="jobtitle" className="field-label mb-2 block">
             {t('mat.jobTitle')} <span className="font-normal normal-case tracking-normal text-ink-500">· {t('mat.optional')}</span>
           </label>
-          <input id="jobtitle" value={inputs.jobTitle} onChange={(e) => setInputs({ jobTitle: e.target.value })} placeholder={t('mat.jobTitlePlaceholder')} className="field h-9" />
+          <input id="jobtitle" disabled={busy.url} value={inputs.jobTitle} onChange={(e) => setInputs({ jobTitle: e.target.value })} placeholder={t('mat.jobTitlePlaceholder')} className="field h-9" />
         </div>
 
         {/* JD */}
@@ -184,9 +186,10 @@ export default function MaterialsPanel() {
           {showUrl && (
             <div className="mb-2 flex gap-1.5 animate-rise">
               <input
+                disabled={busy.url}
                 value={inputs.jdUrl}
                 onChange={(e) => setInputs({ jdUrl: e.target.value })}
-                onKeyDown={(e) => e.key === 'Enter' && inputs.jdUrl && importUrl()}
+                onKeyDown={(e) => e.key === 'Enter' && !busy.url && inputs.jdUrl && importUrl()}
                 placeholder={t('mat.urlPlaceholder')}
                 className="field h-9 flex-1"
                 autoFocus
@@ -196,9 +199,10 @@ export default function MaterialsPanel() {
               </Button>
             </div>
           )}
-          <ErrorNote code={errors.url} compact onClose={() => clearError('url')} />
+          <ErrorNote code={errors.url} compact onRetry={busy.url ? undefined : importUrl} onClose={() => clearError('url')} />
           <textarea
             id="jd"
+            disabled={busy.url}
             value={inputs.jdText}
             onChange={(e) => setInputs({ jdText: e.target.value, jdFromUrl: e.target.value ? inputs.jdFromUrl : false })}
             placeholder={t('mat.jdPlaceholder')}

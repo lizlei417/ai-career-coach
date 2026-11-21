@@ -205,7 +205,7 @@ def exercise(baseline=False):
    p.locator('input[type=file]').first.set_input_files({'name':'scan.pdf','mimeType':'application/pdf','buffer':scan});expect(p.get_by_role('alert').filter(has_text='扫描')).to_be_visible();assert p.locator('#resume').input_value()==''
    nav('预览');p.locator('dialog iframe').wait_for();p.locator('dialog').get_by_role('button',name='关闭',exact=True).click()
    p.locator('input[type=file]').first.set_input_files({'name':'again.pdf','mimeType':'application/pdf','buffer':pdf});expect(p.locator('#resume')).to_have_value(original)
-   nav('从链接导入');p.locator('input[placeholder*="http"]').fill('http://127.0.0.1/private');nav('导入');expect(p.get_by_role('alert').filter(has_text='链接')).to_be_visible();assert p.locator('#jd').input_value()==''
+   nav('从链接导入');p.locator('input[placeholder*="http"]').fill('http://127.0.0.1/private');nav('导入');expect(p.get_by_role('alert').filter(has_text='内网')).to_be_visible();assert p.locator('#jd').input_value()==''
    p.locator('input[placeholder*="http"]').fill('https://qa-careers.example.test/marketing');nav('导入')
    expect(p.locator('#jd')).to_contain_text('QA Marketing Assistant')
    assert 'campaign reports' in p.locator('#jd').input_value()
