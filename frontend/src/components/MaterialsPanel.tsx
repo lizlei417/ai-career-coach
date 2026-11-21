@@ -10,7 +10,7 @@ function count(s: string) {
 }
 
 export default function MaterialsPanel() {
-  const { t, s, setInputs, setMaterialsOpen, prepare, run, busy, errors, clearError, setError, inputsDirty, ready, removeSupplement } = useApp()
+  const { t, s, llm, setInputs, setMaterialsOpen, prepare, run, busy, errors, clearError, setError, inputsDirty, ready, removeSupplement } = useApp()
   const { inputs } = s
   const fileRef = useRef<HTMLInputElement>(null)
   const [drag, setDrag] = useState(false)
@@ -224,7 +224,7 @@ export default function MaterialsPanel() {
           className="w-full"
           loading={busy.prepare}
           onClick={prepare}
-          disabled={ready && !inputsDirty}
+          disabled={!llm?.configured || (ready && !inputsDirty)}
         >
           {busy.prepare ? t('mat.analyzing') : ready ? t('mat.reanalyze') : t('mat.analyze')}
         </Button>

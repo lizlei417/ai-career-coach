@@ -123,7 +123,8 @@ export interface Summary {
 }
 
 export interface LLMPublic {
-  provider: 'openai' | 'anthropic'
+  connection?: 'verified' | 'failed' | 'unverified' | 'offline'
+  provider: 'deepseek' | 'openai' | 'anthropic'
   model: string
   base_url: string
   timeout: number
