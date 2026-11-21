@@ -29,7 +29,9 @@ def launch(kind,port):
  raise RuntimeError(kind+' failed to start')
 try:
  launch('auth',28648);launch('app',28649)
- for script in ['e2e_races.py','api_integration.py','e2e_audit.py']:
+ scripts=sys.argv[1:] or ['e2e_races.py','api_integration.py','e2e_audit.py']
+ if any(s not in ['e2e_races.py','api_integration.py','e2e_audit.py'] for s in scripts):raise ValueError('Unknown test suite')
+ for script in scripts:
   with open(EVIDENCE/(script.removesuffix('.py')+'.log'),'w') as log:
    subprocess.run([sys.executable,str(ROOT/'tests'/script)],cwd=ROOT,env=env,stdout=log,stderr=log,check=True)
   print('PASS',script,flush=True)

@@ -17,6 +17,12 @@ def state():
  inputs=dict(resumeText=TEXT,jdText='Marketing Assistant: prepare campaign reports.',jobTitle='Marketing Assistant')
  return dict(inputs=inputs,inputsKey=input_key(inputs),materials={'fingerprint':'fp','resume_lines':lines},resume=dict(fingerprint='fp',source={'text':TEXT,'lines':lines},data={'items':items},decisions={}))
 class Assembly(unittest.TestCase):
+ def test_profile_change_requires_reanalysis_without_breaking_legacy_state(self):
+  s=state();self.assertEqual(compose(s)['text'],TEXT)
+  s['inputs'].update(userStage='current_student',jobGoal='internship')
+  s['inputsKey']=input_key(s['inputs']);self.assertEqual(compose(s)['text'],TEXT)
+  s['inputs']['jobGoal']='job'
+  with self.assertRaises(AppError):compose(s)
  def test_reject_all_and_pending_preserve_exact_original(self):
   s=state();self.assertEqual(compose(s)['text'],TEXT)
   s['resume']['decisions']={x['id']:{'state':'kept'} for x in s['resume']['data']['items']}

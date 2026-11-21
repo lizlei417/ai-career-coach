@@ -14,6 +14,8 @@ from .errors import AppError
 
 def input_key(inputs: dict) -> str:
     text = '\0'.join(str(inputs.get(k, '')).strip() for k in ('resumeText', 'jdText', 'jobTitle'))
+    if inputs.get('userStage') or inputs.get('jobGoal'):
+        text += '\0' + str(inputs.get('userStage') or '') + '\0' + str(inputs.get('jobGoal') or '')
     units = text.encode('utf-16-le', errors='surrogatepass')
     codes = [int.from_bytes(units[i:i+2], 'little') for i in range(0, len(units), 2)]
     h1, h2 = 0x811c9dc5, 0

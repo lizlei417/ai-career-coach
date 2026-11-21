@@ -11,10 +11,10 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import coach, errors
+from . import m3 as coach, errors
 from .config import FRONTEND_DIST, MAX_TEXT_CHARS, MAX_UPLOAD_BYTES, get_settings
 from .errors import AppError
-from .kb import kb
+from .rag import index as kb
 from .llm import ping
 from .materials import fetch_job_posting, pdf_to_text
 
@@ -50,10 +50,13 @@ async def unhandled(_: Request, exc: Exception):
 # ---------------------------------------------------------------- models
 
 class PrepareReq(BaseModel):
+    resume_format: Literal["pdf", "word", "text"] = "text"
     resume_text: str = Field(default="", max_length=MAX_TEXT_CHARS * 2)
     jd_text: str = Field(default="", max_length=MAX_TEXT_CHARS * 2)
     job_title: str = Field(default="", max_length=200)
     lang: Lang = "zh-CN"
+    user_stage: Optional[Literal["no_experience", "current_student", "recent_graduate"]] = None
+    job_goal: Optional[Literal["internship", "job"]] = None
 
 
 class FeatureReq(BaseModel):
@@ -70,9 +73,11 @@ class FeedbackReq(FeatureReq):
     question: dict[str, Any]
     answer: str = Field(default="", max_length=8000)
     history: list[dict[str, Any]] = []
+    turns: list[dict[str, Any]] = []
 
 
 class SummaryReq(BaseModel):
+    materials: dict[str, Any] = {}
     lang: Lang = "zh-CN"
     turns: list[dict[str, Any]]
 
@@ -138,7 +143,7 @@ def export_resume(id: str, format: Literal['pdf', 'docx'] = 'pdf'):
 
 @app.post("/api/materials/prepare")
 async def prepare(req: PrepareReq):
-    return await coach.prepare_materials(req.resume_text, req.jd_text, req.job_title, req.lang)
+    return await coach.prepare_materials(req.resume_text, req.jd_text, req.job_title, req.lang, req.user_stage, req.job_goal, req.resume_format)
 
 
 @app.post("/api/resume/optimize")
@@ -158,12 +163,12 @@ async def iv_question(req: QuestionReq):
 
 @app.post("/api/interview/feedback")
 async def iv_feedback(req: FeedbackReq):
-    return await coach.interview_feedback(req.materials, req.lang, req.question, req.answer, req.history)
+    return await coach.interview_feedback(req.materials, req.lang, req.question, req.answer, req.history, req.turns)
 
 
 @app.post("/api/interview/summary")
 async def iv_summary(req: SummaryReq):
-    return await coach.interview_summary(req.lang, req.turns)
+    return await coach.interview_summary(req.lang, req.turns, req.materials)
 
 
 # ---- knowledge base (RAG)
@@ -175,25 +180,23 @@ async def kb_status():
 
 @app.post("/api/kb/upload")
 async def kb_upload(file: UploadFile = File(...)):
-    data = await file.read(MAX_UPLOAD_BYTES + 1)
-    if len(data) > MAX_UPLOAD_BYTES:
-        raise AppError(errors.FILE_TOO_LARGE, 413)
-    return kb.add(file.filename or "", data)
+    raise AppError("KB_READ_ONLY", 403)
 
 
 @app.delete("/api/kb/{name}")
 async def kb_delete(name: str):
-    return kb.remove(name)
+    raise AppError("KB_READ_ONLY", 403)
 
 
 class SearchReq(BaseModel):
+    task: Optional[Literal["resume_optimization", "job_matching", "mock_interview"]] = None
     query: str = Field(max_length=500)
     k: int = Field(default=4, ge=1, le=10)
 
 
 @app.post("/api/kb/search")
 async def kb_search(req: SearchReq):
-    return {"connected": kb.status()["connected"], "results": kb.search(req.query, req.k)}
+    return {"connected": kb.status()["connected"], "results": kb.search(req.task or "", req.query, req.k)}
 
 
 # ---------------------------------------------------------------- static frontend (production)

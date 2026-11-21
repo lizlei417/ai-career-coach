@@ -18,6 +18,8 @@ export interface Inputs {
   jdUrl: string
   jdFromUrl: boolean
   jdSourceUrl?: string
+  userStage?: "no_experience" | "current_student" | "recent_graduate"
+  jobGoal?: "internship" | "job"
 }
 
 interface Stamped<T> {
@@ -67,9 +69,10 @@ export const initial: Persisted = {
   interview: emptyInterview,
 }
 
-export function keyOf(i: Pick<Inputs, 'resumeText' | 'jdText' | 'jobTitle'>): string {
+export function keyOf(i: Pick<Inputs, 'resumeText' | 'jdText' | 'jobTitle' | 'userStage' | 'jobGoal'>): string {
   // small non-cryptographic hash, only for change detection
-  const s = `${i.resumeText.trim()}\u0000${i.jdText.trim()}\u0000${i.jobTitle.trim()}`
+  const profile = i.userStage || i.jobGoal ? `\u0000${i.userStage || ""}\u0000${i.jobGoal || ""}` : ""
+  const s = `${i.resumeText.trim()}\u0000${i.jdText.trim()}\u0000${i.jobTitle.trim()}${profile}`
   let h1 = 0x811c9dc5, h2 = 0
   for (let k = 0; k < s.length; k++) {
     const c = s.charCodeAt(k)
@@ -284,13 +287,14 @@ export function AppProvider({ children, project, projects, select, create, renam
 
   const bundle = () => {
     const cur = sRef.current
-    return { ...cur.materials!, supplements: cur.supplements }
+    return { ...cur.materials!, supplements: cur.supplements, user_stage: cur.inputs.userStage, job_goal: cur.inputs.jobGoal }
   }
 
   /* ---------------- materials */
   const prepare = useCallback(async () => {
     const cur = sRef.current
     const { resumeText, jdText, jobTitle } = cur.inputs
+    if (!cur.inputs.userStage || !cur.inputs.jobGoal) { setError('prepare', 'PROFILE_REQUIRED'); return false }
     if (!resumeText.trim()) {
       setError('prepare', 'RESUME_EMPTY')
       return false
@@ -300,7 +304,7 @@ export function AppProvider({ children, project, projects, select, create, renam
       return false
     }
     const out = await run('prepare', () =>
-      post<Materials>('/api/materials/prepare', { resume_text: resumeText, jd_text: jdText, job_title: jobTitle, lang: cur.lang }),
+      post<Materials>('/api/materials/prepare', { resume_text: resumeText, jd_text: jdText, job_title: jobTitle, lang: cur.lang, user_stage: cur.inputs.userStage, job_goal: cur.inputs.jobGoal, resume_format: cur.inputs.resumeFile ? "pdf" : "text" }),
     )
     if (!out) return false
     // Results tied to an older fingerprint are kept but shown as stale until regenerated.
@@ -326,13 +330,14 @@ export function AppProvider({ children, project, projects, select, create, renam
   /* ---------------- resume */
   const generateResume = useCallback(async () => {
     const cur = sRef.current
+    if (!cur.inputs.userStage || !cur.inputs.jobGoal) { setError('resume', 'PROFILE_REQUIRED'); return }
     if (!cur.inputs.resumeText.trim()) { setError('resume', 'RESUME_EMPTY'); return }
     if (!cur.inputs.jdText.trim()) { setError('resume', 'JD_EMPTY'); return }
     const result = await run('resume', async () => {
       const materials = !cur.materials || keyOf(cur.inputs) !== cur.inputsKey
-        ? await post<Materials>('/api/materials/prepare', { resume_text: cur.inputs.resumeText, jd_text: cur.inputs.jdText, job_title: cur.inputs.jobTitle, lang: cur.lang })
+        ? await post<Materials>('/api/materials/prepare', { resume_text: cur.inputs.resumeText, jd_text: cur.inputs.jdText, job_title: cur.inputs.jobTitle, lang: cur.lang, user_stage: cur.inputs.userStage, job_goal: cur.inputs.jobGoal, resume_format: cur.inputs.resumeFile ? "pdf" : "text" })
         : cur.materials
-      const out = await post<OptimizeResult>('/api/resume/optimize', { materials: { ...materials, supplements: cur.supplements }, lang: cur.lang })
+      const out = await post<OptimizeResult>('/api/resume/optimize', { materials: { ...materials, supplements: cur.supplements, user_stage: cur.inputs.userStage, job_goal: cur.inputs.jobGoal }, lang: cur.lang, user_stage: cur.inputs.userStage, job_goal: cur.inputs.jobGoal, resume_format: cur.inputs.resumeFile ? "pdf" : "text" })
       return { materials, out }
     })
     if (!result) return
@@ -352,13 +357,14 @@ export function AppProvider({ children, project, projects, select, create, renam
   /* ---------------- match */
   const generateMatch = useCallback(async () => {
     const cur = sRef.current
+    if (!cur.inputs.userStage || !cur.inputs.jobGoal) { setError('match', 'PROFILE_REQUIRED'); return }
     if (!cur.inputs.resumeText.trim()) { setError('match', 'RESUME_EMPTY'); return }
     if (!cur.inputs.jdText.trim()) { setError('match', 'JD_EMPTY'); return }
     const result = await run('match', async () => {
       const materials = !cur.materials || keyOf(cur.inputs) !== cur.inputsKey
-        ? await post<Materials>('/api/materials/prepare', { resume_text: cur.inputs.resumeText, jd_text: cur.inputs.jdText, job_title: cur.inputs.jobTitle, lang: cur.lang })
+        ? await post<Materials>('/api/materials/prepare', { resume_text: cur.inputs.resumeText, jd_text: cur.inputs.jdText, job_title: cur.inputs.jobTitle, lang: cur.lang, user_stage: cur.inputs.userStage, job_goal: cur.inputs.jobGoal, resume_format: cur.inputs.resumeFile ? "pdf" : "text" })
         : cur.materials
-      const out = await post<MatchResult>('/api/match', { materials: { ...materials, supplements: cur.supplements }, lang: cur.lang })
+      const out = await post<MatchResult>('/api/match', { materials: { ...materials, supplements: cur.supplements, user_stage: cur.inputs.userStage, job_goal: cur.inputs.jobGoal }, lang: cur.lang, user_stage: cur.inputs.userStage, job_goal: cur.inputs.jobGoal, resume_format: cur.inputs.resumeFile ? "pdf" : "text" })
       return { materials, out }
     })
     if (!result) return
@@ -373,10 +379,15 @@ export function AppProvider({ children, project, projects, select, create, renam
       ? cur.interview.turns.slice(-8).map(turn => {
           const last = turn.attempts[turn.attempts.length - 1]
           return { question: turn.question.question, requirement_id: turn.question.requirement_id,
-            answer: last?.answer.slice(0, 600), feedback: last?.feedback?.action.slice(0, 240) }
+            is_follow_up: !!turn.question.is_follow_up, answer: last?.answer.slice(0, 600), feedback: last?.feedback?.action.slice(0, 240) }
         })
       : []
-    const q = await run('question', () =>
+    const last = cur.interview.turns[cur.interview.turns.length - 1]
+    const cached = last?.attempts[last.attempts.length - 1]?.feedback?.next_question
+    if (cur.interview.turns.filter(t => !t.question.is_follow_up).length >= 2 && cur.interview.fingerprint === cur.materials.fingerprint) {
+      setError('question', 'INTERVIEW_COMPLETE'); return
+    }
+    const q = cached && cur.interview.fingerprint === cur.materials.fingerprint ? cached : await run('question', () =>
       post<Question>('/api/interview/question', { materials: bundle(), lang: cur.lang, asked, target_requirement: target || null }),
     )
     if (!q) return
@@ -404,14 +415,15 @@ export function AppProvider({ children, project, projects, select, create, renam
     }
     const history = turn.attempts.filter((a) => a.feedback).map((a) => ({ question: turn.question.question, answer: a.answer }))
     const fb = await run('feedback', () =>
-      post<Feedback>('/api/interview/feedback', { materials: bundle(), lang: cur.lang, question: turn.question, answer, history }),
+      post<Feedback>('/api/interview/feedback', { materials: bundle(), lang: cur.lang, question: turn.question, answer, history, turns: cur.interview.turns.slice(0, -1).map(t => ({ question: t.question.question, answer: t.attempts[t.attempts.length - 1]?.answer || "" })) }),
     )
     if (!fb) return
     patch((c) => {
       const turns = [...c.interview.turns]
       const last = turns[turns.length - 1]
       turns[turns.length - 1] = { ...last, attempts: [...last.attempts, { answer, feedback: fb } as Attempt] }
-      return { interview: { ...c.interview, turns } }
+      const summary = fb.session_summary ? { strengths: [], priorities: [], next_session: fb.session_summary, lang: c.lang, guidance: fb.guidance } : null
+      return { interview: { ...c.interview, turns, ...(summary ? { status: 'ended' as const, summary } : {}) } }
     })
   }, [run, patch, setError])
 
@@ -419,7 +431,7 @@ export function AppProvider({ children, project, projects, select, create, renam
     patch((c) => {
       const last = c.interview.turns[c.interview.turns.length - 1]
       const fb = last?.attempts[last.attempts.length - 1]?.feedback
-      if (!fb?.follow_up.needed) return {}
+      if (!fb?.follow_up.needed || last.question.is_follow_up) return {}
       const q: Question = {
         question: fb.follow_up.question,
         type: last.question.type,
@@ -448,7 +460,7 @@ export function AppProvider({ children, project, projects, select, create, renam
   const loadSummary = useCallback(async () => {
     const turns = summaryTurns()
     if (!turns.length) return
-    const out = await run('summary', () => post<Summary>('/api/interview/summary', { lang: sRef.current.lang, turns }))
+    const out = await run('summary', () => post<Summary>('/api/interview/summary', { lang: sRef.current.lang, turns, materials: bundle() }))
     if (out) patch((c) => ({ interview: { ...c.interview, summary: out } }))
   }, [run, patch])
 

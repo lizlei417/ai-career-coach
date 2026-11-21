@@ -1,9 +1,9 @@
 import PersonalQuota from '../PersonalQuota'
 import {confirmAction,showNotice} from '../ProductDialog'
 import { eraseProjects } from '../lib/projects'
-import { FileUp, Search, Trash2 } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
-import { ApiError, del, get, post, upload } from '../lib/api'
+import { Search } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { ApiError, get, post } from '../lib/api'
 import { errorKey, LANG_LABEL } from '../lib/i18n'
 import { useApp } from '../lib/store'
 import type { KBStatus, Lang, LLMPublic } from '../lib/types'
@@ -37,7 +37,7 @@ export default function SettingsView() {
         </div>
       </Section>
       <ModelSection llm={llm} onChange={refreshStatus} />
-      <KBSection kb={kb} onChange={refreshStatus} />
+      <KBSection kb={kb} />
       <PromptSection />
       <PrivacySection />
     </div>
@@ -56,84 +56,39 @@ function ModelSection({ llm, onChange }: { llm: LLMPublic | null; onChange: () =
     finally { await onChange(); setTesting(false) }
   }
   return <Section title={t('st.model')} lead="DeepSeek · DEEPSEEK_API_KEY">
-    <p>{llm?.model} · {llm?.configured ? t(llm.connection === 'verified' ? 'ds.verified' : llm.connection === 'failed' ? 'ds.failed' : 'ds.pending') : t('st.status.off')}</p>
+    <p>{llm?.model} · {llm?.configured ? t(llm.connection === 'verified' ? 'ds.verified' : llm.connection === 'failed' ? (llm.last_error === 'LLM_AUTH' ? 'ds.authFailed' : 'ds.unavailable') : 'ds.pending') : t('st.status.off')}</p>
     <Button disabled={!llm?.configured || testing} onClick={test}>{t('st.test')}</Button>
     <ErrorNote code={err} onClose={() => setErr(undefined)} />
   </Section>
 }
 
-function KBSection({ kb, onChange }: { kb: KBStatus | null; onChange: () => void }) {
+function KBSection({ kb }: { kb: KBStatus | null }) {
   const { t } = useApp()
-  const ref = useRef<HTMLInputElement>(null)
-  const [busy, setBusy] = useState(false)
-  const [err, setErr] = useState<string>()
   const [q, setQ] = useState('')
-  const [hits, setHits] = useState<{ id: string; source: string; section: string; text: string }[] | null>(null)
-
-  const onFiles = async (files: FileList | null) => {
-    if (!files?.length) return
-    setBusy(true); setErr(undefined)
-    try {
-      for (const f of Array.from(files)) await upload('/api/kb/upload', f)
-    } catch (e) {
-      setErr(e instanceof ApiError ? e.code : 'unknown')
-    }
-    setBusy(false)
-    onChange()
+  const [hits, setHits] = useState<{chunk_id:string;page_title:string;source_url:string;text:string}[] | null>(null)
+  const [err, setErr] = useState<string>()
+  const [busy, setBusy] = useState(false)
+  async function search() {
+    if (!q.trim() || busy) return
+    setBusy(true);setErr(undefined)
+    try { const r = await post<{results: NonNullable<typeof hits>}>('/api/kb/search', { query: q, k: 4 }); setHits(r.results) }
+    catch (e) { setErr(e instanceof ApiError ? e.code : 'unknown') }
+    finally { setBusy(false) }
   }
-  const search = async () => {
-    if (!q.trim()) return
-    try {
-      const r = await post<{ results: any[] }>('/api/kb/search', { query: q, k: 4 })
-      setHits(r.results)
-    } catch (e) {
-      setErr(e instanceof ApiError ? e.code : 'unknown')
-    }
-  }
-
-  return (
-    <Section title={t('st.kb')} lead={t('st.kbLead')}>
-      {kb?.connected ? (
-        <ul className="mb-4 divide-y divide-paper-200 rounded-md border border-paper-200 bg-white">
-          {kb.files.map((f) => (
-            <li key={f.name} className="flex items-center gap-3 px-3.5 py-2.5 text-[13px]">
-              <span className="flex-1 truncate text-ink-800">{f.name}</span>
-              <span className="text-[12px] text-ink-500">{t('st.kbChunks', { n: f.chunks })}</span>
-              <button className="rounded p-1 text-ink-500 hover:bg-paper-100 hover:text-[#9B3B3B]" onClick={async () => { await del(`/api/kb/${encodeURIComponent(f.name)}`).catch(() => null); onChange() }}>
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="mb-4 rounded-md border border-dashed border-paper-300 px-3.5 py-3 text-[13px] text-ink-500">{t('st.kbNone')}</p>
-      )}
-      <Button variant="secondary" loading={busy} onClick={() => ref.current?.click()} icon={<FileUp className="h-4 w-4" />}>{t('st.kbUpload')}</Button>
-      <input ref={ref} type="file" multiple accept=".md,.txt,.pdf" hidden onChange={(e) => { onFiles(e.target.files); e.target.value = '' }} />
-      {err && <div className="mt-3"><ErrorNote code={err} onClose={() => setErr(undefined)} /></div>}
-
-      {kb?.connected && (
-        <div className="mt-6">
-          <div className="field-label mb-1.5">{t('st.kbSearch')}</div>
-          <div className="flex gap-2">
-            <input className="field h-9 flex-1" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && search()} placeholder={t('st.kbSearchPlaceholder')} />
-            <Button variant="secondary" onClick={search} icon={<Search className="h-4 w-4" />}>{t('st.kbSearch')}</Button>
-          </div>
-          {hits && (
-            <ul className="mt-3 space-y-2">
-              {hits.length === 0 && <li className="text-[13px] text-ink-500">{t('st.kbNoHit')}</li>}
-              {hits.map((h) => (
-                <li key={h.id} className="rounded-md border border-paper-200 bg-white px-3.5 py-2.5 text-[12.5px]">
-                  <div className="mb-1 font-medium text-ink-800">{h.source}{h.section && <span className="font-normal text-ink-500"> › {h.section}</span>}</div>
-                  <p className="line-clamp-3 leading-relaxed text-ink-600">{h.text}</p>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-    </Section>
-  )
+  return <Section title={t('st.kb')} lead={t('st.kbFixed')}>
+    <p className="mb-3 text-sm">{kb?.version} · {kb?.connected ? t('side.connected', {n: kb.files.length}) : t(kb?.error ? 'side.kbError' : 'side.notConnected')}</p>
+    <ul className="mb-4 divide-y divide-paper-200 rounded-md border border-paper-200 bg-white">{kb?.files.map(f =>
+      <li key={f.name} className="px-3 py-2 text-[13px]">{f.name} · {t('st.kbChunks', {n:f.chunks})}</li>)}</ul>
+    <div className="flex gap-2">
+      <input aria-label={t('st.kbSearch')} className="field h-9 flex-1" value={q} onChange={e => setQ(e.target.value)} onKeyDown={e => e.key === 'Enter' && search()} />
+      <Button variant="secondary" loading={busy} onClick={search} icon={<Search className="h-4 w-4" />}>{t('st.kbSearch')}</Button>
+    </div>
+    <ErrorNote code={err} onClose={() => setErr(undefined)} />
+    {hits?.length === 0 && <p>{t('st.kbNoHit')}</p>}
+    {hits?.map(h => <div key={h.chunk_id} className="mt-3 rounded-md border border-paper-200 p-3 text-[12.5px]">
+      <a className="text-accent-600 underline" href={h.source_url} target="_blank" rel="noopener noreferrer">{h.chunk_id} · {h.page_title}</a><p>{h.text}</p>
+    </div>)}
+  </Section>
 }
 
 function PromptSection() {
@@ -161,10 +116,10 @@ function PromptSection() {
 function PrivacySection(){
   const {s,busy,saving,reloadProjects}=useApp()
   const text=s.lang==='en'
-    ? ['Delete my data','Delete all your V2 projects, PDFs, résumé text, job descriptions, analyses and interview records?','Permanently delete these data now?','Deletion incomplete. Retry.','Deleted projects / PDFs']
+    ? ['Delete my data','Delete all your V3 projects, PDFs, résumé text, job descriptions, analyses and interview records?','Permanently delete these data now?','Deletion incomplete. Retry.','Deleted projects / PDFs']
     : s.lang==='zh-TW'
-    ? ['清除我的資料','刪除你在 V2 的全部專案、PDF、履歷、職位描述、分析與面試記錄？','再次確認永久刪除？','未完成刪除，請重試。','已刪除專案 / PDF']
-    : ['清除我的数据','删除你在 V2 的全部项目、PDF、简历文本、JD、分析结果与面试记录？','再次确认永久删除这些数据？','未完成删除，请重试。','已删除项目 / PDF']
+    ? ['清除我的資料','刪除你在 V3 的全部專案、PDF、履歷、職位描述、分析與面試記錄？','再次確認永久刪除？','未完成刪除，請重試。','已刪除專案 / PDF']
+    : ['清除我的数据','删除你在 V3 的全部项目、PDF、简历文本、JD、分析结果与面试记录？','再次确认永久删除这些数据？','未完成删除，请重试。','已删除项目 / PDF']
   const [working,setWorking]=useState(false),[failed,setFailed]=useState(false)
   return <><PersonalQuota lang={s.lang}/>
     <Section title={text[0]}><Button variant="danger" disabled={working||saving||Object.values(busy).some(Boolean)} onClick={async()=>{

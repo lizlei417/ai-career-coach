@@ -11,10 +11,12 @@ from .errors import AppError
 
 connection = "unverified"
 balance_blocked = False
+last_error = ""
+verified_at = None
 
 
 async def _request(system: str, user: str, max_tokens: int):
-    global connection, balance_blocked
+    global connection, balance_blocked, last_error, verified_at
     cfg = get_settings()
     if not cfg.configured:
         raise AppError("LLM_NOT_CONFIGURED", 503)
@@ -44,25 +46,33 @@ async def _request(system: str, user: str, max_tokens: int):
         result, usage = parse_completion(data)
     except AppError:
         connection = "failed"
+        last_error = "AI_FORMAT"
         raise
     except httpx.HTTPStatusError as exc:
         connection = "failed"
         code = {401: "LLM_AUTH", 403: "LLM_AUTH", 402: "LLM_BALANCE", 429: "LLM_RATE_LIMIT"}.get(exc.response.status_code, "LLM_FAILED")
+        last_error = code
         raise AppError(code, 502) from None
     except (httpx.ConnectError,httpx.ConnectTimeout,httpx.PoolTimeout):
         await asyncio.to_thread(cloud.cancel_unsent,call)
         connection = "failed"
+        last_error = "NETWORK"
         raise AppError("NETWORK", 502) from None
     except httpx.TimeoutException:
         connection = "failed"
+        last_error = "LLM_TIMEOUT"
         raise AppError("LLM_TIMEOUT", 504) from None
     except httpx.RequestError:
         connection = "failed"
+        last_error = "NETWORK"
         raise AppError("NETWORK", 502) from None
     except (ValueError, TypeError, KeyError, IndexError):
         connection = "failed"
         raise AppError("AI_FORMAT", 502) from None
+    import time
     connection = "verified"
+    last_error = ""
+    verified_at = time.time()
     return result, usage
 
 

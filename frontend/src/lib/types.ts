@@ -37,6 +37,9 @@ export interface GuidanceSource {
   section: string
   excerpt: string
   used: boolean
+  source_url?: string
+  evidence_type?: string
+  claims?: string[]
 }
 export interface Guidance {
   connected: boolean
@@ -63,6 +66,7 @@ export interface MissingItem {
   related_ids: string[]
 }
 export interface OptimizeResult {
+  questions_to_student?: string[]
   items: OptimizeItem[]
   missing: MissingItem[]
   hidden_count: number
@@ -89,6 +93,7 @@ export interface MatchResult {
 }
 
 export interface Question {
+  guidance?: Guidance
   question: string
   type: 'behavioral' | 'technical'
   requirement_id: string
@@ -97,6 +102,9 @@ export interface Question {
   is_follow_up?: boolean
 }
 export interface Feedback {
+  next_question?: Question | null
+  session_summary?: string
+  guidance?: Guidance
   on_topic: { quote: string; why: string }[]
   missing: string[]
   action: string
@@ -116,6 +124,7 @@ export interface Turn {
   attempts: Attempt[]
 }
 export interface Summary {
+  guidance?: Guidance
   strengths: { text: string; turn: number | null }[]
   priorities: { text: string; turn: number | null }[]
   next_session: string
@@ -123,6 +132,8 @@ export interface Summary {
 }
 
 export interface LLMPublic {
+  last_error?: string
+  verified_at?: number | null
   connection?: 'verified' | 'failed' | 'unverified' | 'offline'
   provider: 'deepseek' | 'openai' | 'anthropic'
   model: string
@@ -133,6 +144,10 @@ export interface LLMPublic {
   allow_runtime_config: boolean
 }
 export interface KBStatus {
+  integrity?: boolean
+  error?: string
+  version?: string
+  rejected?: number
   connected: boolean
   files: { name: string; chunks: number }[]
   chunks: number

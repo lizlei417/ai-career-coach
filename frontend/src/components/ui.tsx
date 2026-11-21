@@ -168,7 +168,7 @@ export function GuidancePanel({ g }: { g?: Guidance }) {
     return (
       <div className="flex items-center gap-2 text-[12.5px] text-ink-500">
         <BookMarked className="h-3.5 w-3.5" />
-        {t('common.guidanceNone')}
+        {t(g.connected ? 'common.guidanceNoHit' : 'common.guidanceNone')}
       </div>
     )
   }
@@ -191,6 +191,9 @@ export function GuidancePanel({ g }: { g?: Guidance }) {
                 {src.used && <span className="ml-auto rounded bg-accent-50 px-1.5 text-[11px] text-accent-700">{t('common.guidanceUsed')}</span>}
               </div>
               <p className="line-clamp-3 leading-relaxed text-ink-500">{src.excerpt}</p>
+              {src.evidence_type && <p className="mt-1 text-[11px] text-ink-500">{t('common.referenceLimit')}</p>}
+              {src.claims?.map((claim, i) => <p key={i} className="mt-1 text-ink-700">{claim}</p>)}
+              {src.source_url && <a href={src.source_url} target="_blank" rel="noopener noreferrer" className="mt-1 inline-block text-accent-600 underline">{t('common.source')}</a>}
             </li>
           ))}
         </ul>

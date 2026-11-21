@@ -11,7 +11,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
 
-KB_DIR = Path(os.getenv("KB_DIR", BASE_DIR / "data" / "kb"))
+KB_DIR = BASE_DIR / "data" / "kb"  # compatibility for historical imports
+RAG_DIR = BASE_DIR / "data" / "rag_v1"
+M3_PROMPT_PATH = BASE_DIR / "data" / "m3" / "M3_Prompt_v1.md"
 PROMPT_DIR = BASE_DIR / "prompts"
 CUSTOM_PROMPT_DIR = PROMPT_DIR / "custom"
 FRONTEND_DIST = Path(os.getenv("FRONTEND_DIST", BASE_DIR.parent / "frontend" / "dist"))
@@ -32,10 +34,10 @@ class LLMSettings:
         return bool(self.api_key)
 
     def public(self):
-        from .llm import connection
+        from .llm import connection, last_error, verified_at
         return {"provider": self.provider, "model": self.model, "base_url": "https://api.deepseek.com",
                 "configured": self.configured, "connection": connection if self.configured else "offline",
-                "timeout": self.timeout, "allow_runtime_config": False}
+                "last_error": last_error, "verified_at": verified_at, "timeout": self.timeout, "allow_runtime_config": False}
 
 
 def get_settings():

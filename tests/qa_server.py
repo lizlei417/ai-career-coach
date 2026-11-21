@@ -1,7 +1,7 @@
 """Local QA only. Real PostgreSQL and app endpoints; synthetic Auth/Storage/model.
 Never import this module in production. No credential is needed for mock mode.
 """
-import os, sys, json, re, asyncio, importlib.util, time
+import os, sys, json, re, asyncio, importlib.util, time, hashlib
 from pathlib import Path
 from uuid import uuid4
 ROOT = Path(os.environ.get('QA_APP_ROOT', Path(__file__).resolve().parents[1]))
@@ -36,7 +36,21 @@ job_import.PublicResolver.addresses = fixture_resolve
 if os.environ.get('QA_PUBLIC_DNS') == '1':
     from public_dns import PublicDNSResolver
     job_import.PublicResolver = PublicDNSResolver
-control = {'failure':None, 'delay':0, 'calls':0}
+control = {'failure':None, 'delay':0, 'calls':0, 'requests':[]}
+from app import m3
+real_complete=m3.complete_json
+async def audited_complete(system,user):
+    payload=json.loads(user)
+    control['requests'].append({'task':payload['task'],'ui_language':payload['ui_language'],
+        'system_sha256':hashlib.sha256(system.encode()).hexdigest(),
+        'chunk_ids':[c['chunk_id'] for c in payload['rag_chunks']],
+        'resume_sha256':hashlib.sha256(payload['resume_text'].encode()).hexdigest()})
+    out=await real_complete(system,user)
+    if os.environ.get('QA_REAL_MODEL')=='1':
+        dest=ROOT/'tests/evidence/m3';dest.mkdir(exist_ok=True)
+        (dest/('raw-'+payload['task']+'.json')).write_text(json.dumps(out,ensure_ascii=False,indent=2))
+    return out
+m3.complete_json=audited_complete
 async def set_control(r: Request):
     control.update(await r.json()); return control
 async def get_control(): return control
@@ -51,17 +65,22 @@ class ModelTransport(httpx.AsyncBaseTransport):
         if control['failure']=='timeout':raise httpx.ReadTimeout('QA timeout', request=request)
         if control['failure']:return httpx.Response(503, json={'error':{'message':'QA failure'}})
         body=json.loads(request.content); system=body['messages'][0]['content']; user=body['messages'][1]['content']
-        if '<jd_lines>' in user:
-            ids=re.findall(r'\[(J\d+)\]',user)
-            out={'job_title':'Marketing Assistant','jd_readable':True,'requirements':[{'text':'Support marketing campaigns and prepare reports.','category':'required','source_ids':ids[:2]}]}
-        elif 'resume_facts' in user:
-            if '"priority_order"' in system:
-                ids=re.findall(r'\[(R\d+)\]',user)
-                out={'items':[{'requirement_id':'Q1','status':'partial','evidence_ids':ids[-2:], 'rationale':'Campaign reporting experience is relevant.', 'next_step':{'type':'learn','text':'Practise campaign reporting.'}}], 'overview':'Marketing experience supports this role.'}
-            else:
-                lines=re.findall(r'^\[(R\d+)\](?: \([^\n]*?\))? (.+)$',user,re.M)
-                candidates=[(sid,t) for sid,t in lines if t.startswith(('Helped', 'Created', 'Worked'))][:3]
-                out={'items':[{'source_id':sid,'rewrite':t.replace('Helped coordinate','Coordinated').replace('Worked','Collaborated').replace('Created','Prepared'), 'reason':'Clarifies the original responsibility.', 'evidence_ids':[sid], 'requirement_ids':['Q1'], 'changes':['clarity']} for sid,t in candidates], 'missing':[]}
+        payload=json.loads(user) if '"task"' in user else {}
+        task=payload.get('task')
+        if task=='resume_optimization':
+            resume=payload['resume_text']
+            lines=[x for x in resume.splitlines() if x.startswith(('Helped','Created','Worked'))][:3]
+            out={'status':'ok','message':'','result':{'edits':[{'original':t,'jd_quote':'','rewrite':t.replace('Helped coordinate','Supported').replace('Worked','Collaborated').replace('Created','Prepared'), 'reason':'Clarifies the original responsibility.'} for t in lines], 'questions_to_student':[]},'citations':[]}
+        elif task=='job_matching':
+            jdlines=payload['jd_text'].splitlines()
+            evidence=next((x for x in payload['resume_text'].splitlines() if x.startswith('Helped')),'')
+            out={'status':'ok','message':'','result':{'requirements':[{'jd_quote':t,'priority':'required','evidence_quotes':[evidence] if evidence else [],'status':'partial' if evidence else 'not_evidenced','reason':'Campaign reporting experience is relevant.','next_step':'Practise campaign reporting.'} for t in jdlines if len(t)>20]},'citations':[]}
+        elif task=='mock_interview':
+            action=payload['interview_action'];answer=payload.get('answer_text','')
+            result={'phase':'question','question':'How did you prepare the campaign reports?','feedback':None,'summary':None}
+            if action=='respond':result.update(feedback={'answer_quote':answer,'strength':'You described your actions.','next_try':'Explain your method.'},question='How did you collect attendee feedback?')
+            if action=='finish':result.update(phase='summary',question=None,summary='You described campaign reporting. Practise explaining your method.')
+            out={'status':'ok','message':'','result':result,'citations':[]}
         else:out={'ok':True}
         return httpx.Response(200,json={'choices':[{'finish_reason':'stop','message':{'content':json.dumps(out)}}], 'usage':{'total_tokens':10}})
     async def aclose(self):await self.network.aclose()

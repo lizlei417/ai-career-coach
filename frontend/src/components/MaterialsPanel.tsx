@@ -91,6 +91,23 @@ export default function MaterialsPanel() {
       </div>
 
       <div className="scroll-thin flex-1 space-y-6 overflow-y-auto px-5 pb-6">
+        <div className="space-y-3 rounded-md border border-paper-200 bg-white p-3" data-testid="career-profile">
+          <label className="block text-[12px] text-ink-700">{t('profile.stage')}
+            <select id="user-stage" className="field mt-1 h-9" value={inputs.userStage || ''} onChange={e => setInputs({ userStage: e.target.value as typeof inputs.userStage })}>
+              <option value="">{t('profile.select')}</option>
+              <option value="no_experience">{t('profile.noExperience')}</option>
+              <option value="current_student">{t('profile.student')}</option>
+              <option value="recent_graduate">{t('profile.graduate')}</option>
+            </select>
+          </label>
+          <label className="block text-[12px] text-ink-700">{t('profile.goal')}
+            <select id="job-goal" className="field mt-1 h-9" value={inputs.jobGoal || ''} onChange={e => setInputs({ jobGoal: e.target.value as typeof inputs.jobGoal })}>
+              <option value="">{t('profile.select')}</option>
+              <option value="internship">{t('profile.internship')}</option>
+              <option value="job">{t('profile.job')}</option>
+            </select>
+          </label>
+        </div>
         {/* Resume */}
         <div>
           <div className="mb-2 flex items-center justify-between">

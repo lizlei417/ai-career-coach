@@ -78,7 +78,7 @@ def exercise(baseline=False):
     form.locator('[name=password]').fill('StrongPass123');form.locator('button').click()
    else:
     form=p.locator('.auth-card > form');form.locator('[name=email]').fill('a@example.test');form.locator('[name=password]').fill('fixture-password');form.locator('button').click()
-   p.locator('.workspace').wait_for();create('Marketing Assistant')
+   p.locator('.workspace').wait_for();create('Marketing Assistant');p.locator('#user-stage').select_option('current_student');p.locator('#job-goal').select_option('internship')
    if not baseline:record('账户注册、验证、登录及表单错误（模拟 Auth）')
    # Real multi-page PDF generated from fictional source only.
    q=context.new_page();q.set_content(''.join('<section style="break-after:page;font:14px Arial;white-space:pre-wrap">'+x+'</section>' for x in RESUME_PAGES));pdf=q.pdf();q.close();(OUT/'original-fictional.pdf').write_bytes(pdf)
@@ -171,7 +171,7 @@ def exercise(baseline=False):
    # Stale lock now has explanation, cancellation stays possible, regenerate works.
    review_row(3).get_by_role('button',name='修改',exact=True).click()
    p.locator('#jd').fill(JD+'\nAdditional responsibility: maintain schedules.')
-   expect(p.get_by_text('简历、JD 或岗位名称已变更',exact=False)).to_be_visible()
+   expect(p.get_by_text('简历、JD、岗位名称或求职选项已变更',exact=False)).to_be_visible()
    assert review_row(3).get_by_role('button',name='保存修改',exact=True).is_disabled()
    review_row(3).get_by_role('button',name='取消',exact=True).click()
    assert p.get_by_role('button',name='重新生成',exact=True).first.is_enabled()
@@ -211,8 +211,8 @@ def exercise(baseline=False):
    assert 'campaign reports' in p.locator('#jd').input_value()
    save();record('PDF 删除、重传、扫描件提示及预览；URL 受控 HTML 导入成功、内网拒绝且无假成功')
    # Browser history and session restoration.
-   nav('Marketing Assistant');nav('岗位匹配');nav('生成匹配报告');p.get_by_text('Marketing experience supports this role.',exact=True).wait_for();save();p.reload();expect(p.get_by_text('Marketing experience supports this role.',exact=True)).to_be_visible()
-   nav('简历优化');p.go_back();expect(p.get_by_text('Marketing experience supports this role.',exact=True)).to_be_visible()
+   nav('Marketing Assistant');nav('岗位匹配');nav('生成匹配报告');p.get_by_text('Campaign reporting experience is relevant.',exact=True).first.wait_for();save();p.reload();expect(p.get_by_text('Campaign reporting experience is relevant.',exact=True).first).to_be_visible()
+   nav('简历优化');p.go_back();expect(p.get_by_text('Campaign reporting experience is relevant.',exact=True).first).to_be_visible()
    record('岗位匹配实际后端链路（Mock 上游）、结果持久化、浏览器返回')
    p.get_by_role('button',name='账号',exact=True).click();nav('退出登录');p.get_by_role('button',name='开始使用',exact=True).wait_for();nav('开始使用')
    form=p.locator('.auth-card > form');form.locator('[name=email]').fill(email);form.locator('[name=password]').fill('StrongPass123');form.locator('button').click();p.locator('.workspace').wait_for();nav('Marketing Assistant');nav('简历优化');preview()

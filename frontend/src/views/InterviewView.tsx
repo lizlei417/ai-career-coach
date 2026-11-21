@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useApp } from '../lib/store'
 import type { TKey } from '../lib/i18n'
 import type { Attempt, Feedback, Turn } from '../lib/types'
-import { Button, ErrorNote, NeedMaterials, Notice, PageHeader, SourceId, Tag, WorkingState } from '../components/ui'
+import { Button, ErrorNote, NeedMaterials, Notice, PageHeader, SourceId, Tag, WorkingState, GuidancePanel } from '../components/ui'
 
 export default function InterviewView() {
   const { t, s, ready, busy, errors, clearError, askQuestion, isStale, resetInterview, endInterview, resumeInterview, loadSummary } = useApp()
@@ -181,6 +181,7 @@ function TurnStage({ turn, index, isCurrent, disabled }: { turn: Turn; index: nu
         )}
       </div>
 
+      <GuidancePanel g={q.guidance} />
       {/* earlier attempts */}
       {turn.attempts.map((a, i) => (
         <AttemptBlock key={i} a={a} n={i + 1} total={turn.attempts.length} type={q.type} />
@@ -216,6 +217,7 @@ function TurnStage({ turn, index, isCurrent, disabled }: { turn: Turn; index: nu
       {busy.feedback && <WorkingState label={t('iv.evaluating')} rows={1} />}
       <ErrorNote code={errors.question} onRetry={() => askQuestion()} onClose={() => clearError('question')} />
 
+      <GuidancePanel g={last?.feedback?.guidance} />
       {/* next actions */}
       {isCurrent && !answering && last?.feedback && !disabled && (
         <div className="flex flex-wrap items-center gap-2 border-t border-paper-200 pt-4 animate-fade">
@@ -223,7 +225,7 @@ function TurnStage({ turn, index, isCurrent, disabled }: { turn: Turn; index: nu
           {last.feedback.follow_up.needed && (
             <Button variant="secondary" onClick={takeFollowUp} icon={<MessageSquareReply className="h-4 w-4" />}>{t('iv.acceptFollowUp')}</Button>
           )}
-          <Button variant="primary" loading={busy.question} onClick={() => askQuestion()} icon={<ArrowRight className="h-4 w-4" />}>{t('iv.next')}</Button>
+          {!last.feedback.follow_up.needed && <Button variant="primary" disabled={s.interview.turns.filter(t => !t.question.is_follow_up).length >= 2} loading={busy.question} onClick={() => askQuestion()} icon={<ArrowRight className="h-4 w-4" />}>{t('iv.next')}</Button>}
           <div className="flex-1" />
           <Button variant="ghost" onClick={endInterview} icon={<CircleStop className="h-4 w-4" />}>{t('iv.end')}</Button>
         </div>
@@ -370,6 +372,7 @@ function SummaryPanel() {
           )}
         </>
       )}
+      <GuidancePanel g={sum?.guidance} />
       {/* question list for review */}
       <div className="divide-y divide-paper-200 rounded-xl border border-paper-200 bg-white">
         {s.interview.turns.filter((x) => x.attempts.length).map((turn, i) => (

@@ -94,7 +94,8 @@ export default function ResumeView() {
           )}
 
           {r.data.missing.length > 0 && <MissingSection list={r.data.missing} />}
-          <GuidancePanel g={r.data.guidance} />
+          {s.resume?.data.questions_to_student?.map((q, i) => <p key={i} className="rounded-md border border-paper-200 p-3 text-sm">{q}</p>)}
+      <GuidancePanel g={r.data.guidance} />
         </>
       )}
     </div>
@@ -118,7 +119,7 @@ function RewriteRow({ it, index, decision, disabled }: { it: OptimizeItem; index
   ])
   const evidenceText = it.evidence_ids.map((e) => factMap.get(e) ?? '').join(' ')
   const editIssues = editing ? newNumbers(draft, evidenceText) : []
-  const unsupported = [...it.verification.unsupported_numbers, ...it.verification.unsupported_terms]
+  const unsupported = [...it.verification.unsupported_numbers, ...it.verification.unsupported_terms.map(x => x === 'responsibility_scope' ? t('ro.scopeReview') : x === 'negation_scope' ? t('ro.negationReview') : x)]
 
   const shownText = st === 'edited' ? decision?.text ?? it.rewrite : it.rewrite
   const dim = st === 'kept'
