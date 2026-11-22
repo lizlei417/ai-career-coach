@@ -4,4 +4,9 @@ export function registerResumeGuard(next: () => Promise<boolean>) {
   guard = next
   return () => { if (guard === next) guard = undefined }
 }
-export async function guardResumeNavigation() { return guard ? guard() : true }
+let pending: Promise<boolean> | undefined
+export async function guardResumeNavigation() {
+  if (!guard) return true
+  if (!pending) pending = guard().finally(() => { pending = undefined })
+  return pending
+}

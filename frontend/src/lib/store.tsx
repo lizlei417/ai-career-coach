@@ -546,7 +546,9 @@ export function AppProvider({ children, project, projects, select, create, renam
     retrySave: async () => {
       setSaving(true)
       const write = pendingSave.current.catch(() => {}).then(async () => {
-        revision.current = await saveProject({ id: project.id, name: projectName.current, revision: revision.current, state: sRef.current })
+        const state = sRef.current
+        revision.current = await saveProject({ id: project.id, name: projectName.current, revision: revision.current, state })
+        confirmedResume.current={current:state.finalResume,history:state.finalResumeHistory || []}
       })
       pendingSave.current = write
       try { await write; setSaveFailed(false) } catch { setSaveFailed(true) } finally { setSaving(false) }

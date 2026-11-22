@@ -116,14 +116,17 @@ with sync_playwright() as pw:
   expect(p.locator('main header [data-saved=false]')).to_contain_text('尚未保存')
   p.locator('main').evaluate('e=>e.scrollTop=0');p.screenshot(path=str(OUT/f'{MODE}-resume-editing.png'))
   # Unsaved tab switch and regeneration must use custom dialogs; cancel preserves draft.
-  p.locator('main header').get_by_role('button',name='岗位匹配',exact=True).click();expect(p.get_by_role('dialog')).to_contain_text('尚未保存');nav('取消');expect(editor).to_have_value(edited)
+  p.locator('main header').get_by_role('button',name='岗位匹配',exact=True).evaluate('e=>{e.click();e.click()}');expect(p.get_by_role('dialog')).to_have_count(1);expect(p.get_by_role('dialog')).to_contain_text('尚未保存');nav('取消');expect(editor).to_have_value(edited)
   nav('重新生成');expect(p.get_by_role('dialog')).to_contain_text('替换');nav('确认');expect(p.get_by_role('dialog')).to_contain_text('尚未保存');nav('取消');expect(editor).to_have_value(edited)
   # Failed save retains the textarea and all user content.
   def fail(route):
    if route.request.method=='PUT':route.fulfill(status=503,json={})
    else:route.continue_()
   p.route('**/api/workspaces/*',fail);edit.click();expect(p.get_by_role('alert').filter(has_text='草稿已保留')).to_be_visible();expect(editor).to_have_value(edited)
-  p.unroute('**/api/workspaces/*',fail);edit.click();expect(editor).to_have_count(0);save();expect(p.get_by_role('status').filter(has_text='简历已保存')).to_be_visible()
+  p.unroute('**/api/workspaces/*',fail);p.get_by_role('button',name='重试',exact=True).first.click();expect(p.get_by_role('alert').filter(has_text='项目保存失败')).to_have_count(0);expect(editor).to_have_value(edited)
+  assert api('workspaces/'+project_id)['state']['finalResume']['version']==1
+  edit.click();expect(editor).to_have_count(0);save();expect(p.get_by_role('status').filter(has_text='简历已保存')).to_be_visible()
+  assert api('workspaces/'+project_id)['state']['finalResume']['version']==2
   expect(p.locator('#resume')).to_have_value(original)
   document_files=preview_files('DOCUMENT_ACCEPTANCE_END','edited')
   expect(p.get_by_test_id('final-resume-text')).to_have_text(edited)
