@@ -112,7 +112,7 @@ with sync_playwright() as pw:
   expect(p.get_by_test_id('final-resume-text')).to_have_text(initial_text)
   initial_files=preview_files('林知夏','adopted')
   edit=p.get_by_test_id('edit-complete-resume');preview=p.get_by_role('button',name='预览完整简历',exact=True)
-  eb,pb=edit.bounding_box(),preview.bounding_box();assert abs((eb['x']+eb['width'])-(pb['x']+pb['width']))<1;assert eb['width']<pb['width'];assert abs(eb['y']-(pb['y']+pb['height'])-8)<1
+  eb,pb,tb=edit.bounding_box(),preview.bounding_box(),p.get_by_test_id('final-resume-text').bounding_box();assert abs((eb['x']+eb['width'])-(tb['x']+tb['width']))<1;assert eb['width']<pb['width'];assert abs(tb['y']-(eb['y']+eb['height'])-8)<1
   color=edit.evaluate('e=>getComputedStyle(e).backgroundColor');assert color=='rgb(17, 24, 39)',color
   edit.click();editor=p.get_by_test_id('final-resume-editor');expect(editor).to_have_value(initial_text)
   edited=initial_text.replace('林知夏','林知夏（文档测试）',1)+'\n补充技能\nSQL 数据整理；繁體中文：使用者研究與團隊協作。\nDOCUMENT_ACCEPTANCE_END'
@@ -153,7 +153,7 @@ with sync_playwright() as pw:
   p.locator('main').evaluate('e=>e.scrollTop=0');p.screenshot(path=str(OUT/f'{MODE}-resume-editor-complete.png'),full_page=True)
   p.locator('.account-tools >button').click();nav('退出登录');p.get_by_role('button',name='开始使用',exact=True).wait_for();login();nav(name);p.locator('main header').get_by_role('button',name='简历优化',exact=True).click();expect(p.get_by_test_id('final-resume-text')).to_have_text(edited)
   assert not errors,errors;assert not native,native
-  result={'mode':MODE,'model_mode':'explicit MOCK' if MOCK else 'real DeepSeek','model_calls_this_run':len(calls),'reused_prior_real_analysis':REUSE,'model_status':model_status,'project':name,'adopted_files':initial_files,'edited_files':document_files,'inline_edit':True,'failed_save_retains_draft':True,'reload_recovery':True,'refresh_project_logout_persistence':True,'source_unchanged':True,'navigation_zero_extra_model_calls':True,'three_languages':True,'button_right_alignment_gap_8px_fixed_96px':True,'errors':errors,'native_dialogs':native}
+  result={'mode':MODE,'model_mode':'explicit MOCK' if MOCK else 'real DeepSeek','model_calls_this_run':len(calls),'reused_prior_real_analysis':REUSE,'model_status':model_status,'project':name,'adopted_files':initial_files,'edited_files':document_files,'inline_edit':True,'failed_save_retains_draft':True,'reload_recovery':True,'refresh_project_logout_persistence':True,'source_unchanged':True,'navigation_zero_extra_model_calls':True,'three_languages':True,'button_above_textbox_right_alignment_gap_8px_fixed_96px':True,'errors':errors,'native_dialogs':native}
   (OUT/f'{MODE}-documents-results.json').write_text(json.dumps(result,ensure_ascii=False,indent=2));print('PASS',MODE,'MOCK optimize' if MOCK else 'real AI optimize', '→ adopt → PDF/DOCX rendered previews → edit/save/failure recovery → persistence; quota +1 only',flush=True)
  finally:
   if sys.exc_info()[0]:

@@ -98,13 +98,15 @@ export default function FinalResume() {
       <div className="min-w-0 flex-1"><h2 className="font-serif text-[20px] text-ink-900">{w.title}</h2><p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-ink-500">{w.hint}</p></div>
       <div className="flex shrink-0 flex-col items-end gap-2">
         <Button icon={<Eye className="h-4 w-4" />} loading={working} disabled={saving || busy.resume || !result} onClick={() => editing ? setError(w.finish) : setChoose(true)}>{w.preview}</Button>
-        <Button data-testid="edit-complete-resume" className="!w-[96px] !bg-[#111827] !text-white" variant="primary" icon={editing ? <Check className="h-4 w-4" /> : <Pencil className="h-4 w-4" />} loading={saving} disabled={working || busy.resume || !result} onClick={() => editing ? finish() : (setDraft(result!.text), setEditing(true), setSaved(false))}>{editing ? w.done : w.edit}</Button>
       </div>
     </div>
     {error && <p role="alert" className="mt-3 text-sm text-[#7A2E2E]">{error}</p>}
     {saved && <p role="status" className="mt-3 text-sm text-[#276749]">{w.saved}</p>}
     {result && <div className="mt-4">
-      <p className="mb-3 text-xs leading-relaxed text-ink-500">{result.manual ? w.manual : `${en ? 'Applied changes' : tw ? '已套用修改' : '已应用修改'}: ${result.applied}`}</p>
+      <div className="mb-2 flex items-end justify-between gap-3">
+        <p className="flex-1 text-xs leading-relaxed text-ink-500">{result.manual ? w.manual : `${en ? 'Applied changes' : tw ? '已套用修改' : '已应用修改'}: ${result.applied}`}</p>
+        <Button data-testid="edit-complete-resume" className="!w-[96px] !bg-[#111827] !text-white" variant="primary" icon={editing ? <Check className="h-4 w-4" /> : <Pencil className="h-4 w-4" />} loading={saving} disabled={working || busy.resume || !result} onClick={() => editing ? finish() : (setDraft(result!.text), setEditing(true), setSaved(false))}>{editing ? w.done : w.edit}</Button>
+      </div>
       {editing ? <textarea aria-label={w.title} data-testid="final-resume-editor" value={draft} disabled={saving} onChange={e => updateDraft(e.target.value)} className="h-[65vh] w-full resize-none overflow-y-auto whitespace-pre-wrap break-words rounded border border-paper-300 bg-paper-50 p-6 font-serif text-[15px] leading-relaxed text-ink-900 focus:outline-none focus:ring-1 focus:ring-ink-500" /> : <pre data-testid="final-resume-text" className="h-[65vh] overflow-y-auto whitespace-pre-wrap break-words rounded border border-paper-200 bg-paper-50 p-6 font-serif text-[15px] leading-relaxed text-ink-900">{result.text}</pre>}
       <div className="mt-4 flex gap-2"><Button disabled={working || editing || busy.resume} icon={<Download className="h-4 w-4" />} onClick={() => file('pdf', false)}>PDF</Button><Button disabled={working || editing || busy.resume} icon={<Download className="h-4 w-4" />} onClick={() => file('docx', false)}>DOCX</Button></div>
     </div>}
