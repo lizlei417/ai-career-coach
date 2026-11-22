@@ -48,6 +48,7 @@ with sync_playwright() as pw:
   nav('新建项目');p.get_by_label('项目名称',exact=True).fill(name);nav('创建');p.get_by_role('button',name=name,exact=True).wait_for();save()
  def preview_files(expected,suffix):
   files={}
+  complete=p.get_by_test_id('final-resume-text').inner_text()
   nav('预览完整简历')
   with p.expect_popup() as pop:nav('PDF 预览')
   pdfpage=pop.value;pdfpage.wait_for_url('blob:**');pdfpage.wait_for_timeout(1400)
@@ -63,12 +64,15 @@ with sync_playwright() as pw:
   word.screenshot(path=str(OUT/f'{MODE}-word-{suffix}.png'),full_page=True)
   with word.expect_download() as d:word.get_by_role('link',name='下载 DOCX',exact=True).click()
   docx=OUT/f'{MODE}-complete-{suffix}.docx';d.value.save_as(docx);files['docx']=str(docx)
-  text='\n'.join(x.text for x in Document(docx).paragraphs);assert expected in text
+  text='\n'.join(x.text for x in Document(docx).paragraphs);assert expected in text;assert text==complete
   word.close()
   with p.expect_download() as d:p.get_by_role('button',name='PDF',exact=True).click()
   pdf=OUT/f'{MODE}-complete-{suffix}.pdf';d.value.save_as(pdf);files['pdf']=str(pdf)
   parsed=PdfReader(pdf);pdftext='\n'.join(x.extract_text() for x in parsed.pages)
   assert re.sub(r'\s+','',expected) in re.sub(r'\s+','',pdftext)
+  normalized=re.sub(r'[\s•]+','',pdftext)
+  for line in complete.splitlines():
+   if re.search(r'[\w\u3400-\u9fff]',line):assert re.sub(r'[\s•]+','',line) in normalized,line
   assert all(abs(float(x.mediabox.width)-595.28)<1 for x in parsed.pages)
   return {'files':files,'pdf_pages':len(parsed.pages),'word_pages':len(heights),'layout':heights}
  try:

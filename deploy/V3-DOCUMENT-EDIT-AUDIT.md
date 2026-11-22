@@ -6,7 +6,7 @@
 
 | 需求 | 实现 |
 |---|---|
-| 正式文件预览 | 原按钮打开自定义格式选择框。真实 PDF 在新标签页进入 Chrome 原生 PDF Viewer；真实 DOCX 在独立标签页通过 docx-preview 本机渲染，可下载同一个文件。 |
+| 正式文件预览 | 原按钮打开自定义格式选择框。真实 PDF 在新标签页进入 Chrome 原生 PDF Viewer；真实 DOCX 在独立标签页通过 [docx-preview](https://github.com/VolodymyrBaydalka/docxjs) 本机渲染，可下载同一个文件。 |
 | 文档排版 | ReportLab PDF / python-docx Word，A4、姓名、联系信息、章节、经历条目、项目符号与分页；嵌入 OFL Noto 字体，支持简体、繁体和英文。Word 浏览器预览按实际段落高度分页。 |
 | 完整简历编辑 | 原地只读文本切换为同尺寸 textarea；完成后通过现有项目 revision 校验写入服务器。保存失败不离开编辑状态，保留草稿，支持重试。 |
 | 按钮 | 预览白底、深色文字、浅灰描边；编辑/完成为 #111827 黑底、白字、白色铅笔/勾选。编辑/完成固定宽 96px，右对齐，间隔 8px，保存显示 loading，防重复提交。 |
@@ -67,7 +67,40 @@ QA_DOCUMENTS_MOCK=1 QA_DATABASE_URL=postgresql://postgres@127.0.0.1:28547/coacht
 
 ## 部署与线上验收
 
-待本轮 Render 发布和线上浏览器验收后补充实际部署提交、状态、配额及文档检查结果。
+2026-11-22 已部署并完成线上真实 Chrome 验收。
+
+- 线上业务代码：[892df67](https://github.com/lizlei417/ai-career-coach-codex/commit/892df67f450ac13538d541fb836eb6a4227d3dc9)。Render 状态为 **Deploy succeeded | Live**，最终构建耗时 1 分 30 秒。
+- [V3 验收入口](https://ai-career-coach-three-versions.onrender.com/v3/workspace/resume)，[Render 服务](https://dashboard.render.com/web/srv-dc0k9cm7bikc73b2iqug)。测试使用专用虚构账号，没有修改真实用户项目。
+- 上传原始林知夏 PDF、输入本报告描述的模拟 AI 产品运营 JD，实际 DeepSeek 改写返回 HTTP 200，并采纳一条真实建议；未使用模拟响应或复用结果。
+- 本次线上流程只有 **1 次 AI 请求**，账户已用次数仅增加 1。文件生成、原地编辑、保存、预览、项目切换和顶部导航没有额外模型调用。
+- 采纳后与手动编辑后，PDF、DOCX 均成功预览、下载并重新打开。两份导出均为 2 页；Word 文本逐段与当前完整简历完全相同，PDF 包含全部有意义的原文行和手动新增内容。
+- 自动验证按钮右对齐、8px 间距、96px 固定宽度和 #111827 背景；编辑/完成图标、三种界面语言通过。
+- 应用内未保存提醒、重复点击只出现一个弹窗、取消后保留内容、重新生成前提醒、未保存草稿切换项目后恢复，以及浏览器刷新后恢复通过。
+- 人为拦截项目保存请求返回 503：仍停留在编辑状态、输入未丢失、顶部不显示已保存；通过现有重试入口恢复后再完成，服务器版本从 1 到 2，旧版本记录正常。
+- 刷新、两个不同项目之间切换、退出再登录后恢复通过；后续撤销建议没有覆盖保存的完整简历。原始简历文字、PDF 文件标识不变。
+- 额外线上只读浏览器检查：原 PDF 预览字节与输入文件 SHA-256 一致；模型状态 verified；RAG 校验通过，4 个文件、18 个片段，实际分析结果包含 3 条指南来源；控制台错误 0、页面异常 0，额度未变化。
+- V1、V2、Claude 页面均 HTTP 200，与发布前 JS 资源哈希一致。本轮未重新调用这些版本的真实 AI 接口。
+
+线上证据（本地 `tests/evidence/`，未上传测试账号凭据或用户文件）：
+
+| 证据 | 文件 |
+|---|---|
+| 线上完整流程结果 | `hosted-documents-results.json`、`hosted-documents-run.log` |
+| 只读回归、RAG、原始 PDF 和控制台 | `hosted-document-read-checks.json`、`hosted-document-read-checks.log` |
+| 实际新界面 | `hosted-resume-editor-complete.png`、`hosted-resume-editing.png` |
+| 原生 PDF 及 Word 浏览器预览 | `hosted-pdf-edited.png`、`hosted-word-edited.png` |
+| 真正导出的文件 | `hosted-complete-adopted.pdf/.docx`、`hosted-complete-edited.pdf/.docx` |
+| 下载文件逐页渲染检查 | `hosted-word-pages/page-1.png`、`page-2.png`；`hosted-pdf-page-1.png`、`hosted-pdf-page-2.png` |
+| 旧版本保持不变 | `document-legacy-before.json`、`document-legacy-after.json` |
+
+可重复执行的线上测试：
+
+```sh
+QA_DOCUMENTS_HOSTED=1 python tests/resume_documents_e2e.py
+python tests/document_hosted_read_checks.py
+```
+
+完整流程会创建一个专用测试项目并执行一次正常的真实 AI 分析；只读检查不会调用 AI。测试账户仍受原有每账户 10 次规则约束。最终证据报告和加强后的测试断言另行提交，业务代码与已部署版本一致。
 
 依赖变化：新增 npm `docx-preview`；已有 ReportLab、python-docx 不变，未新增运行时 Python 包；字体包含在镜像。无需数据库迁移或新环境变量。未修改 API Key、额度配置或生产用户数据。
 
