@@ -32,6 +32,7 @@ export default function Sidebar() {
             <button
               disabled={switching}
               key={it.key}
+              aria-current={on ? 'page' : undefined}
               onClick={() => setFeature(it.key)}
               className={`group relative flex h-10 w-full items-center gap-3 rounded-md px-3 text-[13.5px] transition-colors ${
                 on ? 'bg-white/[0.08] text-white' : 'text-white/60 hover:bg-white/[0.04] hover:text-white'

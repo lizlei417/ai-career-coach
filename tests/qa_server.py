@@ -70,7 +70,8 @@ class ModelTransport(httpx.AsyncBaseTransport):
         if task=='resume_optimization':
             resume=payload['resume_text']
             lines=[x for x in resume.splitlines() if x.startswith(('Helped','Created','Worked'))][:3]
-            out={'status':'ok','message':'','result':{'edits':[{'original':t,'jd_quote':'','rewrite':t.replace('Helped coordinate','Supported').replace('Worked','Collaborated').replace('Created','Prepared'), 'reason':'Clarifies the original responsibility.'} for t in lines], 'questions_to_student':[]},'citations':[]}
+            if not lines:lines=[x for x in resume.splitlines() if x.startswith(('协助','参与'))][:3]
+            out={'status':'ok','message':'','result':{'edits':[{'original':t,'jd_quote':'','rewrite':t.replace('Helped coordinate','Supported').replace('Worked','Collaborated').replace('Created','Prepared').replace('协助','支持',1).replace('参与','协助',1), 'reason':'Clarifies the original responsibility.'} for t in lines], 'questions_to_student':[]},'citations':[]}
         elif task=='job_matching':
             jdlines=payload['jd_text'].splitlines()
             evidence=next((x for x in payload['resume_text'].splitlines() if x.startswith('Helped')),'')

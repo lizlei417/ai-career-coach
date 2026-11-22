@@ -12,7 +12,7 @@ with sync_playwright() as pw:
  def api(path,method='GET',data=None):
   return p.evaluate('''async ([path,method,data])=>{const k=Object.keys(localStorage).find(k=>k.startsWith('coach.auth.'));const a=JSON.parse(localStorage.getItem(k));const r=await fetch('/v3/api/'+path,{method,headers:{Authorization:'Bearer '+a.access_token,'Content-Type':'application/json'},body:data?JSON.stringify(data):undefined});if(!r.ok)throw Error('Fixture API '+r.status);return await r.json()}''',[path,method,data])
  def save():p.locator('[data-saved=true]').wait_for()
- def create(name):nav('新建项目');p.get_by_label('项目名称',exact=True).fill(name);nav('创建');p.locator('main header').filter(has_text=name).wait_for();save()
+ def create(name):nav('新建项目');p.get_by_label('项目名称',exact=True).fill(name);nav('创建');p.get_by_role('button',name=name,exact=True).wait_for();save()
  try:
   a={'email':'profile-legacy-'+uuid4().hex[:8]+'@example.test','password':'ProfileLegacy123'}
   ctx.request.post('http://127.0.0.1:28648/auth/v1/signup',data=a);ctx.request.post('http://127.0.0.1:28648/qa/confirm',data={'email':a['email']})

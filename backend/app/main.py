@@ -126,6 +126,12 @@ async def extract_url(req: UrlReq):
     return await fetch_job_posting(req.url)
 
 
+@app.get('/resume-font.ttf')
+def resume_font():
+    from .final_resume import FONT_PATH
+    return FileResponse(FONT_PATH, media_type='font/ttf', headers={'Cache-Control': 'public, max-age=86400'})
+
+
 @app.get('/api/workspaces/{id}/resume/final')
 def final_resume(id: str):
     from .final_resume import compose

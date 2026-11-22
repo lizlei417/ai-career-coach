@@ -40,7 +40,7 @@ def exercise(baseline=False):
   p.on('dialog',lambda d:(native.append(d.type),d.dismiss()))
   def save():p.locator('[data-saved=true]').wait_for()
   def snap(name):p.screenshot(path=str(OUT/(name+'.png')),full_page=True)
-  def nav(name):p.get_by_role('button',name=name,exact=True).click()
+  def nav(name):p.get_by_role('button',name=name,exact=True).first.click()
   def api(path,method='GET',data=None):
    return p.evaluate('''async ([path,method,data])=>{
      const key=Object.keys(localStorage).find(k=>k.startsWith('coach.auth.'));
@@ -52,11 +52,11 @@ def exercise(baseline=False):
    projects=api('api/workspaces')['body']
    return api('api/workspaces/'+next(x['id'] for x in projects if x['name']=='Marketing Assistant'))['body']
   def create(name):
-   nav('新建项目');p.get_by_label('项目名称',exact=True).fill(name);nav('创建');p.locator('main header').filter(has_text=name).wait_for();save()
+   nav('新建项目');p.get_by_label('项目名称',exact=True).fill(name);nav('创建');p.get_by_role('button',name=name,exact=True).wait_for();save()
   def review_row(i):return p.get_by_test_id('rewrite-O'+str(i))
   def preview():
-   with p.expect_response(lambda r: r.url.endswith('/resume/final')) as response:nav('预览完整简历')
-   expected=response.value.json()['text']
+   save()
+   expected=api('api/workspaces/'+project_state()['id']+'/resume/final')['body']['text']
    expect(p.get_by_test_id('final-resume-text')).to_have_text(expected)
    return p.get_by_test_id('final-resume-text').inner_text()
   def control(**settings):p.request.post('http://127.0.0.1:28649/qa/control',data=settings)
@@ -142,7 +142,7 @@ def exercise(baseline=False):
     target=OUT/('final-fictional.'+fmt.lower());info.value.save_as(target)
     if fmt=='PDF':
      reader=PdfReader(target);text='\n'.join(x.extract_text() for x in reader.pages)
-     assert re.sub(r'\s+','',final) in re.sub(r'\s+','',text)
+     assert re.sub(r'[\s•]+','',final) in re.sub(r'[\s•]+','',text)
     else:
      text='\n'.join(x.text for x in Document(target).paragraphs);assert text==final
    record('PDF、DOCX 下载后重新打开，完整内容与预览一致')
@@ -156,8 +156,8 @@ def exercise(baseline=False):
    review_row(3).get_by_role('button',name='撤销',exact=True).click()
    expect(p.get_by_role('alert').filter(has_text='项目保存失败')).to_be_visible()
    assert p.locator('[data-saved=false]').count()==1
-   nav('预览完整简历')
-   expect(p.get_by_role('alert').filter(has_text='无法保存或导出')).to_be_visible()
+   nav('预览完整简历');nav('PDF 预览')
+   expect(p.get_by_role('alert').filter(has_text='无法保存或准备文件')).to_be_visible()
    p.unroute('**/api/workspaces/*',fail_save)
    p.get_by_role('button',name='重试',exact=True).first.click();save();p.reload();review_row(1).wait_for();preview()
    record('保存失败不显示已保存、阻止旧决定导出，重试后恢复')
@@ -192,7 +192,7 @@ def exercise(baseline=False):
    for _ in range(3):
     nav('Marketing Assistant');expect(p.locator('#resume')).to_have_value(original)
     nav('Second Project');expect(p.locator('#jd')).to_have_value('Only second project data')
-   p.get_by_role('button',name='Second Project · 项目菜单',exact=True).click();p.get_by_role('menuitem',name='修改项目名称',exact=True).click();p.get_by_label('项目名称',exact=True).fill('Renamed Test Project');p.locator('dialog').get_by_role('button',name='保存修改',exact=True).click();p.locator('main header').filter(has_text='Renamed Test Project').wait_for()
+   p.get_by_role('button',name='Second Project · 项目菜单',exact=True).click();p.get_by_role('menuitem',name='修改项目名称',exact=True).click();p.get_by_label('项目名称',exact=True).fill('Renamed Test Project');p.locator('dialog').get_by_role('button',name='保存修改',exact=True).click();p.get_by_role('button',name='Renamed Test Project',exact=True).wait_for()
    p.reload();expect(p.locator('#jd')).to_have_value('Only second project data')
    p.get_by_role('button',name='Renamed Test Project · 项目菜单',exact=True).click();p.get_by_role('menuitem',name='删除项目',exact=True).click();p.locator('dialog').get_by_role('button',name='取消',exact=True).click()
    p.get_by_role('button',name='Renamed Test Project · 项目菜单',exact=True).click();p.get_by_role('menuitem',name='删除项目',exact=True).click();snap('05-delete-confirmation');p.locator('dialog').get_by_role('button',name='确认删除',exact=True).click();expect(p.locator('#resume')).to_have_value(original)

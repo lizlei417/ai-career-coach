@@ -5,7 +5,7 @@ from playwright.sync_api import sync_playwright,expect
 from e2e_audit import BASE,OUT,JD,RESUME_PAGES
 with sync_playwright() as pw:
  b=pw.chromium.launch(channel='chrome');ctx=b.new_context(viewport={'width':1500,'height':1000});p=ctx.new_page();p.set_default_timeout(15000)
- def nav(name):p.get_by_role('button',name=name,exact=True).click()
+ def nav(name):p.get_by_role('button',name=name,exact=True).first.click()
  def ctl(**data):r=ctx.request.post('http://127.0.0.1:28649/qa/control',data=data);assert r.ok
  try:
   email='race-'+uuid4().hex[:8]+'@example.test';password='RaceTestPass123'

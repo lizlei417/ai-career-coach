@@ -1,3 +1,5 @@
+import { flushSync } from 'react-dom'
+import { guardResumeNavigation } from './resume-navigation'
 import { requestCareerProfile } from './career-profile'
 import {publicHome,entryFeature,changeFeature,rememberLanguage} from '../cloud'
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
@@ -38,7 +40,11 @@ export interface InterviewState {
   fingerprint: string
 }
 
+export interface FinalResumeVersion { text: string; savedAt: string; version: number; baseText: string }
+
 export interface Persisted {
+  finalResume?: FinalResumeVersion
+  finalResumeHistory?: FinalResumeVersion[]
   drafts: Record<string,string>
   lang: Lang
   entered: boolean
@@ -101,6 +107,9 @@ interface Ctx {
   switching: boolean
   saving: boolean
   saveFailed: boolean
+  resumeDirty: boolean
+  setResumeDirty: (dirty: boolean) => void
+  saveFinalResume: (text: string, baseText: string) => Promise<void>
   flushSave: () => Promise<void>
   retrySave: () => Promise<void>
   setDraft: (id: string, value: string) => void
@@ -156,6 +165,7 @@ export function AppProvider({ children, project, projects, select, create, renam
   const [switching, setSwitching] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveFailed, setSaveFailed] = useState(false)
+  const [resumeDirty, setResumeDirty] = useState(false)
   const [busy, setBusy] = useState<Partial<Record<BusyKey, boolean>>>({})
   const running = useRef(new Set<BusyKey>())
   const [errors, setErrors] = useState<Partial<Record<ErrKey, string>>>({})
@@ -164,6 +174,7 @@ export function AppProvider({ children, project, projects, select, create, renam
   const sRef = useRef(s)
   sRef.current = s
 
+  const confirmedResume = useRef({ current: s.finalResume, history: s.finalResumeHistory || [] })
   const lastSaved=useRef(s)
   const revision = useRef(project.revision)
   const pendingSave = useRef(Promise.resolve())
@@ -179,6 +190,7 @@ export function AppProvider({ children, project, projects, select, create, renam
     setActiveId(project.id)
     const next={...project.state,feature:entryFeature(s.feature)}
     lastSaved.current=next
+    confirmedResume.current={current:next.finalResume,history:next.finalResumeHistory || []}
     setS(next)
     revision.current=project.revision
     setErrors({});setSaveFailed(false);setSaving(false)
@@ -191,6 +203,7 @@ export function AppProvider({ children, project, projects, select, create, renam
     const name=projectName.current
     const write = pendingSave.current.catch(() => {}).then(async () => {
       revision.current = await saveProject({ id: project.id, name, revision: revision.current, state: s })
+      confirmedResume.current={current:s.finalResume,history:s.finalResumeHistory || []}
     })
     pendingSave.current = write
     function finish(failed: boolean) {
@@ -204,6 +217,7 @@ export function AppProvider({ children, project, projects, select, create, renam
 
   async function changeProject(value: string, isNew = false) {
     if (switching || Object.values(busy).some(Boolean)) return
+    if (!await guardResumeNavigation()) return
     setSwitching(true)
     setPendingProject(isNew?'':value)
     try {
@@ -227,13 +241,14 @@ export function AppProvider({ children, project, projects, select, create, renam
     renamed(id,result.name,result.revision)
   }
   async function deleteProject(id:string){
+    if (!await guardResumeNavigation()) return
     if(switching||Object.values(busy).some(Boolean))throw Error('Busy')
     await pendingSave.current
     await deleteSaved(id)
     await removed(id,s.lang)
   }
 
-  useEffect(()=>{const update=()=>setS(cur=>({...cur,feature:entryFeature(cur.feature)}));window.addEventListener('popstate',update);return ()=>window.removeEventListener('popstate',update)},[])
+  useEffect(()=>{const update=async()=>{if(await guardResumeNavigation())setS(cur=>({...cur,feature:entryFeature(cur.feature)}));else changeFeature(sRef.current.feature)};window.addEventListener('popstate',update);return ()=>window.removeEventListener('popstate',update)},[])
 
   useEffect(() => {
     document.documentElement.lang = s.lang
@@ -322,6 +337,7 @@ export function AppProvider({ children, project, projects, select, create, renam
 
   /* ---------------- materials */
   const prepare = useCallback(async () => {
+    if (!await guardResumeNavigation()) return false
     if (!await ensureProfile()) return false
     const cur = sRef.current
     const { resumeText, jdText, jobTitle } = cur.inputs
@@ -359,6 +375,7 @@ export function AppProvider({ children, project, projects, select, create, renam
 
   /* ---------------- resume */
   const generateResume = useCallback(async () => {
+    if (!await guardResumeNavigation()) return
     if (!await ensureProfile()) return
     const cur = sRef.current
     if (!cur.inputs.resumeText.trim()) { setError('resume', 'RESUME_EMPTY'); return }
@@ -515,7 +532,16 @@ export function AppProvider({ children, project, projects, select, create, renam
   }, [])
 
   const value: Ctx = {
-    project, projects, switching, changeProject, saving, saveFailed,renameProject,deleteProject,reloadProjects:reload,pendingProject,
+    project, projects, switching, changeProject, saving, saveFailed,resumeDirty,setResumeDirty,renameProject,deleteProject,reloadProjects:reload,pendingProject,
+    saveFinalResume: async (text, baseText) => {
+      if (!text.trim()) throw Error('Empty resume')
+      // Commit to the existing revision-checked write queue before reporting success.
+      flushSync(() => patch(() => ({
+        finalResume: { text, baseText, savedAt: new Date().toISOString(), version: (confirmedResume.current.current?.version || 0) + 1 },
+        finalResumeHistory: [...confirmedResume.current.history, ...(confirmedResume.current.current ? [confirmedResume.current.current] : [])].slice(-3),
+      })))
+      await pendingSave.current
+    },
     flushSave: async () => { await pendingSave.current },
     retrySave: async () => {
       setSaving(true)
@@ -529,8 +555,8 @@ export function AppProvider({ children, project, projects, select, create, renam
     s, t, busy, errors, llm, kb, materialsOutdated, inputsDirty, ready, isStale, supKey,
     setLang: (l) => { rememberLanguage(l); patch(c => ({ lang: l, inputs: { ...c.inputs, languageConfirmed: true } })) },
     enter: () => patch({ entered: true }),
-    leave: publicHome,
-    setFeature: (f) => {changeFeature(f);patch({feature:f})},
+    leave: async () => { if (await guardResumeNavigation()) publicHome() },
+    setFeature: async (f) => {if (f !== sRef.current.feature && !await guardResumeNavigation()) return;changeFeature(f);patch({feature:f})},
     setMaterialsOpen: (v) => patch({ materialsOpen: v }),
     setInputs: (p) => patch((c) => ({ inputs: { ...c.inputs, ...p } })),
     clearError, setError, run, prepare, addSupplement, removeSupplement,

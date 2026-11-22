@@ -25,7 +25,7 @@ with sync_playwright() as pw:
  def snap(name):save();p.wait_for_timeout(250);p.screenshot(path=str(OUT/(mode+'-'+name+'.png')),full_page=True)
  def api(path):
   return p.evaluate('''async path=>{const key=Object.keys(localStorage).find(k=>k.startsWith('coach.auth.'));const a=JSON.parse(localStorage.getItem(key));const r=await fetch('/v3/api/'+path,{headers:{Authorization:'Bearer '+a.access_token}});return await r.json()}''',path)
- def create(name):nav('新建项目');p.get_by_label('项目名称',exact=True).fill(name);nav('创建');p.locator('main header').filter(has_text=name).wait_for();save();p.locator('#coach-language').select_option('zh-CN');p.locator('#user-stage').select_option('current_student');p.locator('#job-goal').select_option('internship')
+ def create(name):nav('新建项目');p.get_by_label('项目名称',exact=True).fill(name);nav('创建');p.get_by_role('button',name=name,exact=True).wait_for();save();p.locator('#coach-language').select_option('zh-CN');p.locator('#user-stage').select_option('current_student');p.locator('#job-goal').select_option('internship')
  def call(route,button):
   for attempt in range(2):
    with p.expect_response(lambda r:r.url.endswith(route),timeout=85000) as response:

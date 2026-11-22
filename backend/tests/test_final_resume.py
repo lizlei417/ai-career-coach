@@ -17,6 +17,23 @@ def state():
  inputs=dict(resumeText=TEXT,jdText='Marketing Assistant: prepare campaign reports.',jobTitle='Marketing Assistant')
  return dict(inputs=inputs,inputsKey=input_key(inputs),materials={'fingerprint':'fp','resume_lines':lines},resume=dict(fingerprint='fp',source={'text':TEXT,'lines':lines},data={'items':items},decisions={}))
 class Assembly(unittest.TestCase):
+ def test_saved_complete_resume_survives_material_and_review_changes(self):
+  s=state();s['finalResume']={'text':'林知夏\n专业技能\nExcel、SQL\n手动补充段落','version':2}
+  original=copy.deepcopy(s['inputs'])
+  s['resume']['decisions']={'O1':{'state':'adopted'}}
+  self.assertEqual(compose(s)['text'],s['finalResume']['text'])
+  s['inputs']['jdText']='new JD';s['resume']=None
+  self.assertEqual(compose(s)['text'],s['finalResume']['text'])
+  self.assertEqual(s['inputs']['resumeText'],original['resumeText'])
+ def test_docx_embeds_chinese_font_and_preserves_all_paragraphs(self):
+  import zipfile
+  text='林知夏\nlin@example.test\n教育背景\n香港城市大學 碩士\n实习经历\n协助产品团队整理用户反馈，编制每周运营报告。'
+  data=docx_bytes(text);doc=Document(io.BytesIO(data))
+  self.assertEqual('\n'.join(p.text for p in doc.paragraphs),text)
+  archive=zipfile.ZipFile(io.BytesIO(data));self.assertIn('word/fonts/ResumeSans.odttf',archive.namelist())
+  self.assertIn(b'embedRegular',archive.read('word/fontTable.xml'))
+  pdf=PdfReader(io.BytesIO(pdf_bytes(text)));self.assertIn('香港城市大學',pdf.pages[0].extract_text())
+  self.assertNotIn('\x7f',pdf.pages[0].extract_text())
  def test_profile_change_requires_reanalysis_without_breaking_legacy_state(self):
   s=state();self.assertEqual(compose(s)['text'],TEXT)
   s['inputs'].update(userStage='current_student',jobGoal='internship')

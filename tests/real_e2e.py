@@ -17,7 +17,7 @@ with sync_playwright() as pw:
  def response(r):
   if any(r.url.endswith(s) for s in ['/materials/prepare','/match','/resume/optimize']):calls.append({'path':r.url.split('/v3/')[-1],'status':r.status})
  p.on('response',response)
- def nav(name):p.get_by_role('button',name=name,exact=True).click()
+ def nav(name):p.get_by_role('button',name=name,exact=True).first.click()
  def save():p.locator('[data-saved=true]').wait_for()
  try:
   email='real-model-'+uuid4().hex[:10]+'@example.test';password='RealFlowPass123'

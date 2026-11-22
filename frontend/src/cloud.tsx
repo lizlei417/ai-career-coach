@@ -1,3 +1,4 @@
+import { guardResumeNavigation } from './lib/resume-navigation';
 import {
   createClient,
   type SupabaseClient,
@@ -455,6 +456,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
                 onClick={async () => {
                   setBusy(true);
                   try {
+                    if (!await guardResumeNavigation()) { setBusy(false); return; }
                     await queued.catch(() => {});
                     await (await import('./lib/projects')).waitProjectWrites();
                     const result = await client.auth.signOut({
