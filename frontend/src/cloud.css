@@ -146,3 +146,7 @@
   color: #923c30;
 }
 .workspace main > div > header { padding-right: 44px; }
+
+.auth-verification { margin-top: 16px; padding-top: 14px; border-top: 1px solid #dfe4eb; }
+.auth-verification p { font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.auth-verification button { width: 100%; background: white; color: #243c60; border: 1px solid #ccd4df; }

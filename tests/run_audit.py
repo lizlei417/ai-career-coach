@@ -30,7 +30,7 @@ def launch(kind,port):
 try:
  launch('auth',28648);launch('app',28649)
  scripts=sys.argv[1:] or ['e2e_races.py','api_integration.py','e2e_audit.py']
- if any(s not in ['e2e_races.py','api_integration.py','e2e_audit.py','m3_interview_e2e.py','profile_recovery_e2e.py','resume_documents_e2e.py'] for s in scripts):raise ValueError('Unknown test suite')
+ if any(s not in ['e2e_races.py','api_integration.py','e2e_audit.py','m3_interview_e2e.py','profile_recovery_e2e.py','resume_documents_e2e.py','auth_verification_e2e.py'] for s in scripts):raise ValueError('Unknown test suite')
  for script in scripts:
   with open(EVIDENCE/(script.removesuffix('.py')+'.log'),'w') as log:
    subprocess.run([sys.executable,str(ROOT/'tests'/script)],cwd=ROOT,env=env,stdout=log,stderr=log,check=True)

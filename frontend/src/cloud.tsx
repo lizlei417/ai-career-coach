@@ -120,7 +120,12 @@ const words = {
     back: "返回首页",
     forgot: "忘记密码",
     send: "发送重置邮件",
-    check: "请检查邮箱并点击验证链接，然后返回此页面。",
+    check: "请求已提交。请检查邮箱的收件箱、垃圾邮件和促销分类，并打开邮件中的链接。",
+    resend: "重新发送验证邮件",
+    resendWait: "{seconds} 秒后可重新发送",
+    verificationHint: "验证邮件的发件人是 AI Career Coach，主题为 Confirm your email address。找不到时请搜索所有邮件，包含垃圾邮件；请使用最新一封邮件中的链接。",
+    resendRequested: "重新发送请求已提交。若该邮箱有待验证的账户，系统会发送验证邮件；请同时检查垃圾邮件。",
+    emailRate: "验证邮件发送过于频繁，请等待后重试。",
     error: "认证失败，请检查输入或稍后重试。",
     mismatch: "两次密码不一致。",
     wait: "正在验证登录状态…",
@@ -147,7 +152,12 @@ const words = {
     back: "返回首頁",
     forgot: "忘記密碼",
     send: "傳送重設郵件",
-    check: "請檢查電郵並點擊驗證連結，然後返回此頁。",
+    check: "請求已提交。請檢查收件匣、垃圾郵件及促銷分類，並開啟郵件中的連結。",
+    resend: "重新傳送驗證郵件",
+    resendWait: "{seconds} 秒後可重新傳送",
+    verificationHint: "驗證郵件的寄件者是 AI Career Coach，主旨為 Confirm your email address。找不到時請搜尋所有郵件，包括垃圾郵件；請使用最新郵件中的連結。",
+    resendRequested: "重新傳送請求已提交。若此電郵有待驗證的帳戶，系統會傳送驗證郵件；請同時檢查垃圾郵件。",
+    emailRate: "驗證郵件傳送過於頻繁，請稍後重試。",
     error: "驗證失敗，請檢查輸入或稍後重試。",
     mismatch: "兩次密碼不一致。",
     wait: "正在驗證登入狀態…",
@@ -175,7 +185,12 @@ const words = {
     forgot: "Forgot password",
     send: "Send reset email",
     check:
-      "Check your inbox and follow the verification link, then return here.",
+      "Request submitted. Check your inbox, spam and promotions, then open the link in the email.",
+    resend: "Resend verification email",
+    resendWait: "Resend available in {seconds}s",
+    verificationHint: "Look for AI Career Coach with the subject Confirm your email address. Search all mail, including spam, and use the link in the latest email.",
+    resendRequested: "Resend requested. If this address has an account awaiting verification, a verification email will be sent. Also check spam.",
+    emailRate: "Too many verification email requests. Wait before trying again.",
     error: "Authentication failed. Check your details or try again later.",
     mismatch: "Passwords do not match.",
     wait: "Verifying your session…",
@@ -193,6 +208,14 @@ const words = {
     challenge: "Complete the security check.",
   },
 };
+function authError(err: {status?: number; code?: string}) {
+  if (err?.code === 'over_email_send_rate_limit') return 'emailRate'
+  if (err?.status === 429) return 'rate'
+  if (err?.code === 'invalid_credentials') return 'invalid'
+  if (err?.code === 'email_not_confirmed') return 'unconfirmed'
+  if (['unexpected_failure','email_address_not_authorized'].includes(err?.code || '')) return 'mailError'
+  return 'error'
+}
 function strong(password: string) {
   return (
     password.length >= 10 &&
@@ -212,6 +235,22 @@ export function AuthGate({ children }: { children: ReactNode }) {
     [busy, setBusy] = useState(false),
     [menu, setMenu] = useState(false),
     [failed, setFailed] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState('')
+  const [verificationPending, setVerificationPending] = useState(false)
+  const [retryAfter, setRetryAfter] = useState(0), [now, setNow] = useState(Date.now())
+  const resending = useRef(false)
+  const retrySeconds = Math.max(0, Math.ceil((retryAfter - now) / 1000))
+  useEffect(() => {
+    if (!retryAfter) return
+    const timer = window.setInterval(() => {
+      const time = Date.now();setNow(time)
+      if (time >= retryAfter) window.clearInterval(timer)
+    }, 1000)
+    return () => window.clearInterval(timer)
+  }, [retryAfter])
+  function startEmailCooldown() {
+    const time = Date.now();setNow(time);setRetryAfter(time + 60000)
+  }
   const navigation = useRef<(url: string) => void>(() => {});
   const t = words[lang] || words["zh-CN"];
   const view = path.slice(base.length).replace(/\/$/, "");
@@ -226,6 +265,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
     setError("");
     setMessage("");
     setMenu(false);
+    setVerificationPending(false);
   }
   navigation.current = navigate;
   function language(v: Lang) {
@@ -345,6 +385,20 @@ export function AuthGate({ children }: { children: ReactNode }) {
           encodeURIComponent(location.pathname + location.search),
       );
   }, [ready, privatePage, signed]);
+  async function resendVerification() {
+    if (resending.current || busy || Date.now() < retryAfter || !verificationEmail) return
+    resending.current = true;setBusy(true);setError('');setMessage('')
+    try {
+      await (setup ||= configure())
+      const result = await client.auth.resend({type:'signup', email:verificationEmail,
+        options:{emailRedirectTo:location.origin + base + 'auth/callback'}})
+      if (result.error) throw result.error
+      startEmailCooldown();setMessage('resendRequested')
+    } catch (err: any) {
+      const key = authError(err);setError(key === 'error' ? 'mailError' : key)
+      if (err?.status === 429) startEmailCooldown()
+    } finally {resending.current = false;setBusy(false)}
+  }
   async function submit(e: FormEvent<HTMLFormElement>, change = false) {
     e.preventDefault();
     setError("");
@@ -352,6 +406,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
     const form = e.currentTarget,
       fields = new FormData(form),
       password = String(fields.get("password") || "");
+    if (!change && !recover) setVerificationEmail(String(fields.get("email") || "").trim());
     if ((signup || change || recover) && !strong(password)) {
       setError("strength");
       return;
@@ -368,14 +423,14 @@ export function AuthGate({ children }: { children: ReactNode }) {
         result = await client.auth.updateUser({ password });
       else if (forgot)
         result = await client.auth.resetPasswordForEmail(
-          String(fields.get("email")),
+          String(fields.get("email")).trim(),
           {
             redirectTo: location.origin + base + "auth/callback?mode=recovery",
           },
         );
       else if (signup)
         result = await client.auth.signUp({
-          email: String(fields.get("email")),
+          email: String(fields.get("email")).trim(),
           password,
           options: {
             emailRedirectTo: location.origin + base + "auth/callback",
@@ -383,7 +438,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
         });
       else
         result = await client.auth.signInWithPassword({
-          email: String(fields.get("email")),
+          email: String(fields.get("email")).trim(),
           password,
         });
       if (result.error) throw result.error;
@@ -391,21 +446,14 @@ export function AuthGate({ children }: { children: ReactNode }) {
       if (change || recover) {
         setMessage("updated");
         if (recover) navigate(base + "workspace");
-      } else if (forgot || signup) setMessage("check");
+      } else if (forgot || signup) {
+        setMessage("check");
+        if (signup) {setVerificationPending(true);startEmailCooldown()}
+      }
       else navigate(target());
     } catch (err: any) {
-      setError(
-        err?.status === 429
-          ? "rate"
-          : err?.code === "invalid_credentials"
-            ? "invalid"
-            : err?.code === "email_not_confirmed"
-              ? "unconfirmed"
-              : err?.code === "unexpected_failure" ||
-                  err?.code === "over_email_send_rate_limit"
-                ? "mailError"
-                : "error",
-      );
+      setError(authError(err));
+      if (err?.code === 'email_not_confirmed') setVerificationPending(true);
     } finally {
       setBusy(false);
     }
@@ -533,6 +581,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
                 name="email"
                 type="email"
                 autoComplete="username"
+                onChange={() => setVerificationPending(false)}
                 required
               />
             </label>
@@ -588,6 +637,13 @@ export function AuthGate({ children }: { children: ReactNode }) {
         )}
         {error && <p role="alert">{t[error as keyof typeof t] || t.error}</p>}
         {message && <p role="status">{t[message as keyof typeof t]}</p>}
+        {verificationPending && !forgot && !recover && <section className="auth-verification" aria-label={t.resend}>
+          <p>{verificationEmail}</p>
+          <p>{t.verificationHint}</p>
+          <button type="button" disabled={busy || retrySeconds > 0 || !ready} onClick={resendVerification}>
+            {busy && resending.current ? '…' : retrySeconds > 0 ? t.resendWait.replace('{seconds}', String(retrySeconds)) : t.resend}
+          </button>
+        </section>}
       </div>
     </main>
   );
