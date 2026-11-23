@@ -25,14 +25,14 @@ export default function InterviewView() {
   if (iv.status === 'idle' || iv.turns.length === 0) {
     return (
       <div className="space-y-5 animate-fade">
-        <PageHeader title={t('iv.title')} meta={s.materials?.job_title} />
+        <PageHeader title={t('iv.title')} meta={s.lang === 'en' ? 'Practice with your resume and target role' : s.lang === 'zh-TW' ? '根據履歷與目標職位練習' : '根据简历与目标岗位练习'} />
         <ErrorNote code={errors.question} onRetry={() => askQuestion(target)} onClose={() => clearError('question')} />
         {busy.question ? (
           <div className="mx-auto max-w-[720px] pt-6"><WorkingState label={t('iv.asking')} rows={1} /></div>
         ) : (
           <div className="mx-auto max-w-[720px] pt-[6vh]">
             <div className="rounded-xl bg-ink-900 px-10 py-10 text-white shadow-lift">
-              <div className="mb-3 font-mono text-[11px] uppercase tracking-[0.18em] text-accent-200/70">Interview room</div>
+              <div className="mb-3 font-mono text-[11px] uppercase tracking-[0.18em] text-accent-200/70">{s.lang === 'en' ? 'Interview room' : s.lang === 'zh-TW' ? '模擬面試室' : '模拟面试室'}</div>
               <h2 className="font-serif text-[28px] font-medium leading-snug">{t('iv.startTitle')}</h2>
               <p className="mt-3 max-w-[520px] text-[14px] leading-relaxed text-white/65">{t('iv.startLead')}</p>
               <div className="mt-8 flex items-end gap-3">
@@ -69,7 +69,7 @@ export default function InterviewView() {
       })}>{l('保存至面经复盘','Save to Interview Review')}</Button>{saving.message}</div>
       <PageHeader
         title={t('iv.title')}
-        meta={s.materials?.job_title}
+        meta={s.lang === 'en' ? 'Practice with your resume and target role' : s.lang === 'zh-TW' ? '根據履歷與目標職位練習' : '根据简历与目标岗位练习'}
         actions={
           <>
             <Button size="sm" variant="ghost" onClick={async () => { if (await confirmAction(t('iv.resetConfirm'))) resetInterview() }} icon={<RotateCcw className="h-3.5 w-3.5" />}>{t('iv.reset')}</Button>
