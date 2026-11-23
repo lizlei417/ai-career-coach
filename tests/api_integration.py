@@ -28,6 +28,12 @@ httpx.post('http://127.0.0.1:28649/qa/control',json={'failure':None,'delay':0})
 for _ in range(10):assert a.post('/api/settings/test').status_code==200
 assert a.post('/api/settings/test').status_code==429
 assert a.get('/api/quota').json()=={'limit':10,'used':10,'remaining':0,'blocked':False}
+# All generation endpoints must enforce the same exhausted account reservation.
+assert a.post('/api/explore/paths/'+name,json={'lang':'en','resume':'A fictional resume'}).status_code==429
+review_url='/api/explore/review/'+str(uuid4())
+created=a.post(review_url,json={'revision':0,'review':{'date':'2026-11-22','role':'QA','questions':[{'question':'How do you plan?'}]}})
+assert created.is_success
+assert a.post(review_url+'/analyze',json={'lang':'en','revision':created.json()['revision']}).status_code==429
 assert b.get('/api/quota').json()['used']==0
 assert a.delete('/api/workspaces/'+name).status_code==200
 assert a.get('/api/quota').json()['used']==10
