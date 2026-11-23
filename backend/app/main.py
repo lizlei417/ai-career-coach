@@ -113,7 +113,7 @@ async def extract_pdf(file: UploadFile = File(...), project_id:str=Form("workspa
     try:
         parsed = await run_in_threadpool(pdf_to_text,data)
     except AppError as error:
-        if error.code!="PDF_NO_TEXT" or cloud.APP_ID!="codex_v3": raise
+        if error.code!="PDF_NO_TEXT" or cloud.APP_ID!="codex_v4": raise
         from io import BytesIO
         from pypdf import PdfReader
         parsed={"text":"","pages":len(PdfReader(BytesIO(data)).pages),"warning":"PDF_NO_TEXT"}
@@ -204,6 +204,11 @@ class SearchReq(BaseModel):
 async def kb_search(req: SearchReq):
     return {"connected": kb.status()["connected"], "results": kb.search(req.task or "", req.query, req.k)}
 
+
+from . import exploration, positions
+app.include_router(exploration.router)
+app.include_router(exploration.previous)
+app.include_router(positions.router)
 
 # ---------------------------------------------------------------- static frontend (production)
 

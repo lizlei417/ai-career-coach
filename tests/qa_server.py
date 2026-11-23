@@ -83,6 +83,12 @@ class ModelTransport(httpx.AsyncBaseTransport):
             if action=='respond' and control.get('follow_up'):result.update(phase='follow_up',question='What reporting method did you use?')
             if action=='finish':result.update(phase='summary',question=None,summary='You described campaign reporting. Practise explaining your method.')
             out={'status':'ok','message':'','result':result,'citations':[]}
+        elif 'Recommend three distinct' in system:
+            data=json.loads(user)
+            out={"paths":[dict(name=x,category=k,reason="Practice from the resume",evidence=data["resume"].splitlines()[0],transfer="Coordination",gap="Quantify results") for x,k in [("Product operations","operations"),("Marketing","marketing"),("Analytics","analytics")]]}
+        elif 'For each question in order' in system:
+            data=json.loads(user)
+            out=dict(items=[dict(intent="Coordination",evaluation="Specific actions",improve="Explain your role",example="I would first clarify the scope.") for _ in data["review"]["questions"]],strengths="Clear examples",priorities=["Scope","Evidence","Results"],practice="Behavioral questions",checklist="Rehearse once")
         else:out={'ok':True}
         if payload.get('task') and os.environ.get('QA_NULL_CITATIONS')=='1':out['citations']=None
         return httpx.Response(200,json={'choices':[{'finish_reason':'stop','message':{'content':json.dumps(out)}}], 'usage':{'total_tokens':10}})
@@ -93,7 +99,7 @@ if os.environ.get('QA_REAL_MODEL') != '1':
 root=FastAPI()
 root.add_api_route('/qa/control', set_control, methods=['POST'])
 root.add_api_route('/qa/control', get_control, methods=['GET'])
-root.mount('/v3',v2)
+root.mount('/v4',v2)
 if __name__=='__main__':
     import uvicorn
     uvicorn.run(fixture.app if sys.argv[-1]=='auth' else root,host='127.0.0.1',port=28648 if sys.argv[-1]=='auth' else 28649,access_log=False)

@@ -18,7 +18,7 @@ from fastapi import HTTPException, Request, Response
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-APP_ID = "codex_v3"
+APP_ID = "codex_v4"
 identity = ContextVar("career_user")
 request_context = ContextVar("career_request", default=None)
 BUCKET = "career-resumes-private"
@@ -31,17 +31,17 @@ def connect():
 
 
 @contextmanager
-def workspace(write=False):
+def workspace(write=False, namespace=APP_ID):
     with connect() as db:
         uid = identity.get()
         if write:
             db.execute(
-                "select pg_advisory_xact_lock(hashtextextended(%s,0))", (uid + APP_ID,)
+                "select pg_advisory_xact_lock(hashtextextended(%s,0))", (uid + namespace,)
             )
         db.execute("set local role career_workspace")
         db.execute(
             "select set_config('career.uid',%s,true),set_config('career.app',%s,true)",
-            (uid, APP_ID),
+            (uid, namespace),
         )
         yield db
 
@@ -116,9 +116,9 @@ class Snapshot(BaseModel):
     state: dict
 
 
-def save(id, body):
+def save(id, body, namespace=APP_ID):
     valid_id(id)
-    with workspace(True) as db:
+    with workspace(True, namespace) as db:
         row = db.execute(
             "select revision from career_private.projects where id=%s", (id,)
         ).fetchone()
@@ -131,7 +131,7 @@ def save(id, body):
             """insert into career_private.projects(user_id,app_id,id,name,revision,state)
             values (%s,%s,%s,%s,%s,%s) on conflict(user_id,app_id,id) do update
             set name=excluded.name,revision=excluded.revision,state=excluded.state""",
-            (identity.get(), APP_ID, id, body.name, revision, Jsonb(body.state)),
+            (identity.get(), namespace, id, body.name, revision, Jsonb(body.state)),
         )
     return {"revision": revision}
 
@@ -216,6 +216,11 @@ def erase(project=None):
             "delete from career_private.projects" + (" where id=%s" if project else ""),
             args,
         )
+        db.execute("select set_config('career.app',%s,true)", (APP_ID+"_exploration",))
+        if project:
+            db.execute("delete from career_private.projects where name='paths' and id=%s",("paths-"+project,))
+        else:
+            db.execute("delete from career_private.projects where name<>'usage'")
         return {"deletedProjects": result.rowcount, "deletedDocuments": len(rows)}
 
 
@@ -374,7 +379,7 @@ def install(app):
         with connect() as db:
             return counts(db)
 
-    if APP_ID == "codex_v3":
+    if APP_ID == "codex_v4":
 
         @app.delete("/api/my-data")
         def clear_all():

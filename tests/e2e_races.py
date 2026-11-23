@@ -32,9 +32,9 @@ with sync_playwright() as pw:
   p.evaluate("""async()=>{
    const k=Object.keys(localStorage).find(k=>k.startsWith('coach.auth.'));const a=JSON.parse(localStorage.getItem(k));
    const headers={Authorization:'Bearer '+a.access_token,'Content-Type':'application/json'};
-   const all=await(await fetch('/v3/api/workspaces',{headers})).json();const project=all.find(x=>x.name==='Race Regression');
-   const record=await(await fetch('/v3/api/workspaces/'+project.id,{headers})).json();delete record.state.materials.pipeline_version;
-   const response=await fetch('/v3/api/workspaces/'+project.id,{method:'PUT',headers,body:JSON.stringify(record)});if(!response.ok)throw Error('fixture save failed');
+   const all=await(await fetch('/v4/api/workspaces',{headers})).json();const project=all.find(x=>x.name==='Race Regression');
+   const record=await(await fetch('/v4/api/workspaces/'+project.id,{headers})).json();delete record.state.materials.pipeline_version;
+   const response=await fetch('/v4/api/workspaces/'+project.id,{method:'PUT',headers,body:JSON.stringify(record)});if(!response.ok)throw Error('fixture save failed');
   }""")
   p.reload();expect(p.get_by_text('材料解析已更新。',exact=False)).to_be_visible()
   expect(p.get_by_test_id('rewrite-O1').get_by_role('button',name='采用',exact=True)).to_be_enabled()

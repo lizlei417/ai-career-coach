@@ -1,4 +1,6 @@
 import { ArrowRight, BriefcaseBusiness, FileText, MessagesSquare } from 'lucide-react'
+import PreviousMaterials from '../explore/PreviousMaterials'
+import {useCopy} from '../explore/shared'
 import { useState } from 'react'
 import { useApp } from '../lib/store'
 import { LANG_LABEL, type TKey } from '../lib/i18n'
@@ -9,11 +11,15 @@ export default function Overview() {
   const { t, s, setFeature, llm, isStale, busy } = useApp()
   const m = s.materials
 
+  const {l}=useCopy()
+  const discovery=<div className="explore"><div className="xgrid">{([['explorer','职业测评','Career Explorer'],['match','发现岗位方向','Discover positions'],['reviews','面经复盘','Interview Review']] as const).map(([f,z,e])=><button key={f} onClick={()=>setFeature(f)}>{l(z,e)} →</button>)}</div><PreviousMaterials/></div>
+
   if (!m) {
     const steps = [t('ov.emptyStep1'), t('ov.emptyStep2'), t('ov.emptyStep3')]
     return (
       <div className="mx-auto max-w-[640px] pt-[10vh] animate-rise">
         <h1 className="font-serif text-[30px] font-medium tracking-[-0.01em] text-ink-900">{t('ov.emptyTitle')}</h1>
+        {discovery}
         <ol className="mt-8 border-t border-paper-200">
           {steps.map((st, i) => (
             <li key={i} className="flex items-center gap-5 border-b border-paper-200 py-4">
@@ -55,6 +61,7 @@ export default function Overview() {
         meta={t('mat.lines', { r: facts.filter((l) => !l.heading).length, q: m.requirements.length })}
       />
 
+      {discovery}
       {/* features */}
       <section>
         <div className="section-label mb-3">{t('ov.features')}</div>

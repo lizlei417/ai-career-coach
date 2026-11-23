@@ -116,10 +116,10 @@ function PromptSection() {
 function PrivacySection(){
   const {s,busy,saving,reloadProjects}=useApp()
   const text=s.lang==='en'
-    ? ['Delete my data','Delete all your V3 projects, PDFs, résumé text, job descriptions, analyses and interview records?','Permanently delete these data now?','Deletion incomplete. Retry.','Deleted projects / PDFs']
+    ? ['Delete my data','Delete all your V4 projects, PDFs, résumé text, job descriptions, analyses and interview records?','Permanently delete these data now?','Deletion incomplete. Retry.','Deleted projects / PDFs']
     : s.lang==='zh-TW'
-    ? ['清除我的資料','刪除你在 V3 的全部專案、PDF、履歷、職位描述、分析與面試記錄？','再次確認永久刪除？','未完成刪除，請重試。','已刪除專案 / PDF']
-    : ['清除我的数据','删除你在 V3 的全部项目、PDF、简历文本、JD、分析结果与面试记录？','再次确认永久删除这些数据？','未完成删除，请重试。','已删除项目 / PDF']
+    ? ['清除我的資料','刪除你在 V4 的全部專案、PDF、履歷、職位描述、分析與面試記錄？','再次確認永久刪除？','未完成刪除，請重試。','已刪除專案 / PDF']
+    : ['清除我的数据','删除你在 V4 的全部项目、PDF、简历文本、JD、分析结果与面试记录？','再次确认永久删除这些数据？','未完成删除，请重试。','已删除项目 / PDF']
   const [working,setWorking]=useState(false),[failed,setFailed]=useState(false)
   return <><PersonalQuota lang={s.lang}/>
     <Section title={text[0]}><Button variant="danger" disabled={working||saving||Object.values(busy).some(Boolean)} onClick={async()=>{

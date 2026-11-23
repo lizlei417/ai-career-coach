@@ -8,7 +8,7 @@ from pathlib import Path
 from uuid import uuid4
 from playwright.sync_api import sync_playwright,expect
 ROOT=Path(__file__).resolve().parents[1];OUT=ROOT/'tests/evidence'
-HOSTED=os.environ.get('QA_MAIL_HOSTED')=='1';BASE='https://ai-career-coach-three-versions.onrender.com/v3' if HOSTED else 'http://127.0.0.1:28649/v3'
+HOSTED=os.environ.get('QA_MAIL_HOSTED')=='1';BASE='https://ai-career-coach-three-versions.onrender.com/v4' if HOSTED else 'http://127.0.0.1:28649/v4'
 with sync_playwright() as pw:
  b=pw.chromium.launch(channel='chrome');ctx=b.new_context(viewport={'width':1100,'height':1000});p=ctx.new_page();p.set_default_timeout(15000)
  requests=[];status={'value':200};errors=[];p.on('pageerror',lambda e:errors.append(str(e)))

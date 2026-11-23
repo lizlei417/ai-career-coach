@@ -8,7 +8,7 @@ from uuid import uuid4
 from playwright.sync_api import sync_playwright, expect
 from pypdf import PdfReader
 from docx import Document
-BASE='http://127.0.0.1:28649/v3/'
+BASE='http://127.0.0.1:28649/v4/'
 OUT=Path(__file__).resolve().parent/'evidence';OUT.mkdir(exist_ok=True)
 RESUME_PAGES=[
  'ALEX TAYLOR\nalex.taylor@example.test | Hong Kong\nSUMMARY\nMarketing graduate with experience supporting campus communications and campaign reporting.\nEXPERIENCE\nStudent Marketing Volunteer | Example Student Society | 2025-2026\nHelped coordinate email campaigns and prepare weekly marketing reports using Excel for the student society.',
@@ -45,7 +45,7 @@ def exercise(baseline=False):
    return p.evaluate('''async ([path,method,data])=>{
      const key=Object.keys(localStorage).find(k=>k.startsWith('coach.auth.'));
      const auth=JSON.parse(localStorage.getItem(key));
-     const r=await fetch('/v3/'+path,{method,headers:{Authorization:'Bearer '+auth.access_token,'Content-Type':'application/json'},body:data?JSON.stringify(data):undefined});
+     const r=await fetch('/v4/'+path,{method,headers:{Authorization:'Bearer '+auth.access_token,'Content-Type':'application/json'},body:data?JSON.stringify(data):undefined});
      return {status:r.status,body:await r.json()};
    }''',[path,method,data])
   def project_state():

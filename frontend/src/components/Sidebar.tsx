@@ -1,3 +1,5 @@
+import {useCopy} from '../explore/shared'
+import {Compass,NotebookPen} from 'lucide-react'
 import ProjectList from './ProjectList'
 import { BriefcaseBusiness, FileText, Home, LayoutGrid, MessagesSquare, Settings2 } from 'lucide-react'
 import { useApp } from '../lib/store'
@@ -7,8 +9,11 @@ import { Logo } from '../views/Landing'
 
 export default function Sidebar() {
   const { t, s, setFeature, leave, llm, kb, isStale, switching } = useApp()
+  const {l}=useCopy()
   const items: { key: Feature; label: string; icon: typeof FileText; dot?: 'ready' | 'stale' }[] = [
     { key: 'overview', label: t('nav.overview'), icon: LayoutGrid },
+    {key:'explorer',label:l('职业测评','Career Explorer'),icon:Compass},
+    {key:'reviews',label:l('面经复盘','Interview Review'),icon:NotebookPen},
     { key: 'resume', label: t('nav.resume'), icon: FileText, dot: s.resume ? (isStale(s.resume.fingerprint) ? 'stale' : 'ready') : undefined },
     { key: 'match', label: t('nav.match'), icon: BriefcaseBusiness, dot: s.match ? (isStale(s.match.fingerprint) ? 'stale' : 'ready') : undefined },
     {

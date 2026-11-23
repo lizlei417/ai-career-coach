@@ -1,3 +1,5 @@
+import {importMock} from '../explore/Reviews'
+import {useAction,useCopy} from '../explore/shared'
 import {confirmAction} from '../ProductDialog'
 import { ArrowRight, CircleStop, CornerDownRight, FileText, MessageSquareReply, Play, RotateCcw, Undo2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
@@ -8,6 +10,7 @@ import { Button, ErrorNote, NeedMaterials, Notice, PageHeader, SourceId, Tag, Wo
 
 export default function InterviewView() {
   const { t, s, ready, busy, errors, clearError, askQuestion, isStale, resetInterview, endInterview, resumeInterview, loadSummary } = useApp()
+  const {l}=useCopy(),saving=useAction(),{project,setFeature}=useApp()
   const iv = s.interview
   const [target, setTarget] = useState('')
   const [viewId, setViewId] = useState<string | null>(null)
@@ -60,6 +63,10 @@ export default function InterviewView() {
 
   return (
     <div className="flex h-full flex-col animate-fade">
+      <div><Button disabled={saving.busy} onClick={()=>saving.run(async()=>{
+        await importMock(s.inputs.jobTitle||s.materials?.job_title||l('模拟面试','Mock interview'), project.id,iv.turns.map(t=>({question:t.question.question,answer:t.attempts.slice(-1)[0]?.answer||'',reflection:'',feedback:''})))
+        setFeature('reviews')
+      })}>{l('保存至面经复盘','Save to Interview Review')}</Button>{saving.message}</div>
       <PageHeader
         title={t('iv.title')}
         meta={s.materials?.job_title}

@@ -1,4 +1,5 @@
 """Single-attempt DeepSeek JSON transport. Prompts and credentials stay on the server."""
+from contextvars import ContextVar
 from . import cloud
 import asyncio
 import json
@@ -9,6 +10,7 @@ import httpx
 from .config import get_settings
 from .errors import AppError
 
+received_usage = ContextVar("received_usage", default=None)
 connection = "unverified"
 balance_blocked = False
 last_error = ""
@@ -42,6 +44,7 @@ async def _request(system: str, user: str, max_tokens: int):
         except ValueError:
             raise AppError("AI_FORMAT", 502, "invalid_envelope") from None
         raw_usage=data.get("usage") if isinstance(data,dict) else None
+        if isinstance(raw_usage,dict): received_usage.set(raw_usage)
         if isinstance(raw_usage,dict): await asyncio.to_thread(cloud.record_usage,call,raw_usage.get("total_tokens"))
         result, usage = parse_completion(data)
     except AppError:
@@ -73,7 +76,7 @@ async def _request(system: str, user: str, max_tokens: int):
     connection = "verified"
     last_error = ""
     verified_at = time.time()
-    return result, usage
+    return result, raw_usage if isinstance(raw_usage,dict) else usage
 
 
 def parse_completion(data):

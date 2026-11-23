@@ -10,7 +10,7 @@ from pypdf import PdfReader
 from playwright.sync_api import sync_playwright,expect
 ROOT=Path(__file__).resolve().parents[1];OUT=ROOT/'tests/evidence';OUT.mkdir(exist_ok=True)
 HOSTED=os.environ.get('QA_DOCUMENTS_HOSTED')=='1'
-BASE='https://ai-career-coach-three-versions.onrender.com/v3' if HOSTED else 'http://127.0.0.1:28649/v3'
+BASE='https://ai-career-coach-three-versions.onrender.com/v4' if HOSTED else 'http://127.0.0.1:28649/v4'
 MOCK=os.environ.get('QA_DOCUMENTS_MOCK')=='1'
 MODE='hosted' if HOSTED else 'local-mock' if MOCK else 'local-real'
 REUSE=os.environ.get('QA_DOCUMENTS_REUSE')=='1'
@@ -41,7 +41,7 @@ with sync_playwright() as pw:
  def nav(label):p.get_by_role('button',name=label,exact=True).first.click()
  def save():p.locator('[data-saved=true]').wait_for()
  def api(path,method='GET',data=None):
-  return p.evaluate('''async ([path,method,data])=>{const k=Object.keys(localStorage).find(k=>k.startsWith('coach.auth.'));const a=JSON.parse(localStorage.getItem(k));const r=await fetch('/v3/api/'+path,{method,headers:{Authorization:'Bearer '+a.access_token,'Content-Type':'application/json'},body:data?JSON.stringify(data):undefined});if(!r.ok)throw Error('Test API '+r.status);return r.json()}''',[path,method,data])
+  return p.evaluate('''async ([path,method,data])=>{const k=Object.keys(localStorage).find(k=>k.startsWith('coach.auth.'));const a=JSON.parse(localStorage.getItem(k));const r=await fetch('/v4/api/'+path,{method,headers:{Authorization:'Bearer '+a.access_token,'Content-Type':'application/json'},body:data?JSON.stringify(data):undefined});if(!r.ok)throw Error('Test API '+r.status);return r.json()}''',[path,method,data])
  def login():
   p.goto(BASE+'/login');f=p.locator('.auth-card >form');f.locator('[name=email]').fill(account['email']);f.locator('[name=password]').fill(account['password']);f.locator('button').click();p.locator('.workspace').wait_for()
  def create(name):

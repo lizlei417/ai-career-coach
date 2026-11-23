@@ -13,6 +13,7 @@ with psycopg.connect(url) as db:
  if db.execute('show server_encoding').fetchone()[0]!='UTF8':raise SystemExit('UTF8 server encoding required')
  for name in ['001_private.sql','003_account_quota.sql']:db.execute((ROOT/'deploy'/name).read_text())
 env=dict(os.environ,DATABASE_URL=url,SUPABASE_URL='http://127.0.0.1:28648',SUPABASE_PUBLISHABLE_KEY='sb_publishable_offline',SUPABASE_SECRET_KEY='sb_secret_offline',DEEPSEEK_API_KEY='offline-test-only')
+env['QA_DOCUMENTS_MOCK']='1'
 env.pop('QA_REAL_JD_IMPORT',None);env.pop('QA_PUBLIC_DNS',None);env.pop('QA_REAL_MODEL',None);env.pop('QA_APP_ROOT',None);env.pop('FRONTEND_DIST',None)
 processes=[]
 def launch(kind,port):
@@ -30,7 +31,7 @@ def launch(kind,port):
 try:
  launch('auth',28648);launch('app',28649)
  scripts=sys.argv[1:] or ['e2e_races.py','api_integration.py','e2e_audit.py']
- if any(s not in ['e2e_races.py','api_integration.py','e2e_audit.py','m3_interview_e2e.py','profile_recovery_e2e.py','resume_documents_e2e.py','auth_verification_e2e.py'] for s in scripts):raise ValueError('Unknown test suite')
+ if any(s not in ['e2e_races.py','api_integration.py','e2e_audit.py','m3_interview_e2e.py','profile_recovery_e2e.py','exploration_e2e.py','resume_documents_e2e.py','auth_verification_e2e.py'] for s in scripts):raise ValueError('Unknown test suite')
  for script in scripts:
   with open(EVIDENCE/(script.removesuffix('.py')+'.log'),'w') as log:
    subprocess.run([sys.executable,str(ROOT/'tests'/script)],cwd=ROOT,env=env,stdout=log,stderr=log,check=True)

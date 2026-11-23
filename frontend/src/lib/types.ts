@@ -1,5 +1,5 @@
 export type Lang = 'zh-CN' | 'zh-TW' | 'en'
-export type Feature = 'overview' | 'resume' | 'match' | 'interview' | 'settings'
+export type Feature = 'explorer' | 'reviews' | 'overview' | 'resume' | 'match' | 'interview' | 'settings'
 
 export interface SourceLine {
   id: string

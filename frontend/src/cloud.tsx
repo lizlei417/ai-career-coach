@@ -83,7 +83,7 @@ export async function clearWorkspace() {
 export function entryFeature<T extends string>(fallback: T): T {
   const feature = location.pathname.slice((base + "workspace/").length);
   return (
-    ["overview", "resume", "match", "interview", "settings"].includes(feature)
+    ["overview", "resume", "match", "interview", "settings","explorer","reviews"].includes(feature)
       ? feature
       : fallback
   ) as T;
@@ -313,7 +313,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
         if (!live || current !== seq) return;
         if (me.id !== session.user.id) throw Error("identity");
         owner = me.id;
-        if (appId !== "codex_v3") {
+        if (appId !== "codex_v4") {
           const snapshot = await apiFetch(
             "/api/workspaces/" + (appId === "claude" ? "draft" : "workspace"),
           );

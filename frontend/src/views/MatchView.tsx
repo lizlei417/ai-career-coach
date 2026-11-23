@@ -1,3 +1,4 @@
+import Discovery from '../explore/Discovery'
 import { Check, Info, Plus, RefreshCw } from 'lucide-react'
 import { useState } from 'react'
 import { useApp } from '../lib/store'
@@ -23,7 +24,7 @@ export function StatusMark({ status, size = 12 }: { status: MatchItem['status'];
 
 export default function MatchView() {
   const { t, s, ready, busy, errors, generateMatch, clearError, isStale } = useApp()
-  if (!ready) return <NeedMaterials />
+  if (!ready) return <div className="space-y-5"><PageHeader title={t('jm.title')} /><Discovery/><ErrorNote code={errors.match} onClose={()=>clearError('match')}/><NeedMaterials /></div>
   const r = s.match
   const reqs = s.materials!.requirements
   const reqMap = new Map(reqs.map((q) => [q.id, q]))
@@ -42,6 +43,7 @@ export default function MatchView() {
           </Button>
         ) : null}
       />
+      <Discovery/>
       <ErrorNote code={errors.match} onRetry={generateMatch} onClose={() => clearError('match')} />
 
       {!r && !busy.match && (

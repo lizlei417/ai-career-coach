@@ -1,9 +1,9 @@
 services:
   - type: web
-    name: career-coach-v3-preview
+    name: career-coach-v4-preview
     runtime: docker
     plan: free
-    branch: codex/v3-career-audit
+    branch: codex/v4-career-explorer
     dockerfilePath: ./Dockerfile
     healthCheckPath: /healthz
     autoDeployTrigger: "off"

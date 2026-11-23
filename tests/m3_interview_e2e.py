@@ -15,7 +15,7 @@ with sync_playwright() as pw:
   with p.expect_response(lambda r:r.url.endswith('/interview/feedback')) as r:nav('提交回答')
   assert r.value.status==200,r.value.text()
  def state():
-  return p.evaluate('''async()=>{const k=Object.keys(localStorage).find(k=>k.startsWith('coach.auth.'));const a=JSON.parse(localStorage.getItem(k));const headers={Authorization:'Bearer '+a.access_token};const all=await(await fetch('/v3/api/workspaces',{headers})).json();const one=all.find(x=>x.name==='M3 Interview Bounds');return await(await fetch('/v3/api/workspaces/'+one.id,{headers})).json()}''')
+  return p.evaluate('''async()=>{const k=Object.keys(localStorage).find(k=>k.startsWith('coach.auth.'));const a=JSON.parse(localStorage.getItem(k));const headers={Authorization:'Bearer '+a.access_token};const all=await(await fetch('/v4/api/workspaces',{headers})).json();const one=all.find(x=>x.name==='M3 Interview Bounds');return await(await fetch('/v4/api/workspaces/'+one.id,{headers})).json()}''')
  try:
   control(calls=0,failure=None,delay=0,follow_up=False)
   a={'email':'interview-bounds-'+uuid4().hex[:8]+'@example.test','password':'InterviewBounds123'}

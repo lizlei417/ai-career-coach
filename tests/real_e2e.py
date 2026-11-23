@@ -15,7 +15,7 @@ with sync_playwright() as pw:
  p=ctx.new_page();p.set_default_timeout(75000);errors=[];calls=[]
  p.on('pageerror',lambda e:errors.append(str(e)))
  def response(r):
-  if any(r.url.endswith(s) for s in ['/materials/prepare','/match','/resume/optimize']):calls.append({'path':r.url.split('/v3/')[-1],'status':r.status})
+  if any(r.url.endswith(s) for s in ['/materials/prepare','/match','/resume/optimize']):calls.append({'path':r.url.split('/v4/')[-1],'status':r.status})
  p.on('response',response)
  def nav(name):p.get_by_role('button',name=name,exact=True).first.click()
  def save():p.locator('[data-saved=true]').wait_for()

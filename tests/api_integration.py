@@ -6,7 +6,7 @@ import httpx
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'backend'))
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'backend/tests'))
 from test_final_resume import state
-BASE='http://127.0.0.1:28649/v3'
+BASE='http://127.0.0.1:28649/v4'
 AUTH='http://127.0.0.1:28648'
 def account():
  email='integration-'+uuid4().hex[:10]+'@example.test';password='IntegrationPass123'

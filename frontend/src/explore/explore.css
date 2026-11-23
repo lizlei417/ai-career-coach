@@ -1,0 +1,141 @@
+.explore {
+  font-size: 14px;
+  color: #19283b;
+  overflow-wrap: anywhere;
+}
+.explore h1 {
+  font:
+    500 28px Georgia,
+    serif;
+  margin-bottom: 18px;
+}
+.explore h2 {
+  font-size: 17px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.explore h3 {
+  font-weight: 600;
+  margin: 6px 0;
+}
+.explore article {
+  background: white;
+  border: 1px solid #dce2e8;
+  border-radius: 9px;
+  padding: 16px;
+  margin: 10px 0;
+}
+.explore legend,
+.explore small {
+  color: #586a80;
+  font-size: 12px;
+}
+.explore label {
+  display: block;
+  margin: 8px 0;
+}
+.explore input:not([type="checkbox"]),
+.explore textarea,
+.explore select {
+  display: block;
+  border: 1px solid #c6d1dd;
+  border-radius: 5px;
+  background: white;
+  padding: 6px 9px;
+  width: 100%;
+  min-width: 0;
+}
+.explore input[type="checkbox"] {
+  margin-right: 6px;
+}
+.explore textarea {
+  min-height: 58px;
+}
+.explore button,
+.explore a {
+  display: inline-block;
+  color: #275481;
+  border: 1px solid #cbd7e2;
+  border-radius: 5px;
+  padding: 5px 9px;
+  background: white;
+  margin: 3px 4px 3px 0;
+}
+.explore button:disabled {
+  opacity: 0.5;
+}
+.explore button[aria-pressed="true"] {
+  background: #233f60;
+  color: white;
+}
+.explore button:enabled:hover,
+.explore a:hover {
+  background: #eaf1f8;
+  color: #173b61;
+}
+.explore .xgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 175px), 1fr));
+  gap: 9px;
+}
+.explore .filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.explore .filters > * {
+  width: auto !important;
+  max-width: 100%;
+}
+.explore p,
+.explore blockquote {
+  margin: 7px 0;
+  white-space: pre-line;
+}
+.explore blockquote {
+  border-left: 2px solid #b8c9da;
+  padding-left: 8px;
+}
+.explore summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.explore .job,
+.explore .xgrid details {
+  background: #f8fafc;
+  border-radius: 5px;
+  padding: 10px;
+}
+.explore .job footer {
+  margin-top: 7px;
+  font-size: 12px;
+}
+.explore progress {
+  display: block;
+  width: 100%;
+  accent-color: #426489;
+}
+.explore fieldset {
+  min-width: 0;
+}
+@media (max-width: 1000px) and (min-width: 801px) {
+  .workspace > aside {
+    width: 155px;
+  }
+  .workspace > div > section {
+    width: 230px;
+  }
+  .workspace main > div {
+    padding: 16px;
+  }
+}
+@media (max-width: 800px) {
+  .workspace > div > section {
+    width: 100%;
+  }
+  .workspace main table {
+    display: block;
+    overflow: auto;
+  }
+}

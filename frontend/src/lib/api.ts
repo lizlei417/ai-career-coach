@@ -21,7 +21,7 @@ async function handle<T>(res: Response): Promise<T> {
     /* non-json */
   }
   if (!res.ok) {
-    const code = (body?.detail==='DAILY_LIMIT'?'DAILY_LIMIT':undefined) || body?.error?.code || (res.status===429?'LLM_RATE_LIMIT':res.status===402?'LLM_BALANCE':res.status === 504 ? 'LLM_TIMEOUT' : res.status >= 500 ? 'SERVER' : 'BAD_REQUEST')
+    const code = (['CLOSED','CONTEXT_LIMIT','AI_FORMAT'].includes(body?.detail)?body.detail:undefined) || (body?.detail==='DAILY_LIMIT'?'DAILY_LIMIT':undefined) || body?.error?.code || (res.status===429?'LLM_RATE_LIMIT':res.status===402?'LLM_BALANCE':res.status === 504 ? 'LLM_TIMEOUT' : res.status >= 500 ? 'SERVER' : 'BAD_REQUEST')
     throw new ApiError(code, body?.error?.detail || '')
   }
   return body as T
