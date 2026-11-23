@@ -7,6 +7,12 @@ const poles = [
   ["探索变化", "Exploration", "稳定规划", "Planning"],
   ["深度分析", "Deep analysis", "沟通表达", "Communication"],
 ];
+const preferenceColors = [
+  ["#CF7B84", "#55A9CC"], // independent focus / collaboration
+  ["#E0AF4B", "#85B45F"], // creative experimentation / structured delivery
+  ["#A28BCA", "#D78F61"], // exploration / stable planning
+  ["#718FC6", "#C184A8"], // deep analysis / communication
+] as const;
 export const names = [
   ["静思解题者", "Independent investigator"],
   ["团队联络人", "Team connector"],
@@ -241,25 +247,35 @@ export default function Report({
           )}
         </p>
         <div className="preference-grid">
-          {poles.map(([a, b, c, d], i) => (
-            <article key={a}>
-              <div className="pole-labels">
-                <span>{l(a, b)}</span>
-                <span>{l(c, d)}</span>
-              </div>
-              <div className="preference-track" aria-hidden="true">
-                <i style={{ left: r.scores[i] + "%" }} />
-              </div>
-              <small>
-                {r.scores[i]} / 100 ·{" "}
-                {r.scores[i] !== 50 &&
-                  (Math.abs(r.scores[i] - 50) < 10
-                    ? tr("略偏向", "略偏向", "Leans slightly toward ")
-                    : tr("偏向", "偏向", "Leans toward "))}
-                {directions[i]}
-              </small>
-            </article>
-          ))}
+          {poles.map(([a, b, c, d], i) => {
+            // The two colour lengths and the marker must share the same measured position.
+            const score = Math.max(0, Math.min(100, r.scores[i] ?? 50));
+            const [leftColor, rightColor] = preferenceColors[i];
+            return (
+              <article key={a}>
+                <div className="pole-labels">
+                  <span>{l(a, b)}</span>
+                  <span>{l(c, d)}</span>
+                </div>
+                <div
+                  className="preference-track"
+                  style={{ background: `linear-gradient(to right, ${leftColor} 0%, ${leftColor} ${score}%, ${rightColor} ${score}%, ${rightColor} 100%)` }}
+                  aria-label={`${l(a, b)} / ${l(c, d)}: ${score} / 100`}
+                  role="img"
+                >
+                  <i style={{ left: score + "%" }} />
+                </div>
+                <small>
+                  {r.scores[i]} / 100 ·{" "}
+                  {r.scores[i] !== 50 &&
+                    (Math.abs(r.scores[i] - 50) < 10
+                      ? tr("略偏向", "略偏向", "Leans slightly toward ")
+                      : tr("偏向", "偏向", "Leans toward "))}
+                  {directions[i]}
+                </small>
+              </article>
+            );
+          })}
         </div>
       </section>
       <section>
