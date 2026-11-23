@@ -171,7 +171,7 @@
 .explore .quiz-question .choices button{display:flex;flex-direction:column;align-items:center;gap:6px;justify-content:flex-start;margin:0;padding:0 1px;min-height:0;white-space:normal;background:transparent;border:0;color:#45546b;font-size:13px}
 .choices button:before{content:"";box-sizing:border-box;width:13px;height:13px;border-radius:50%;border:1px solid #99aabc;background:white}
 .choices button:hover:before,.choices button:focus-visible:before{border-color:#365778}.choices button[aria-pressed=true]:before{background:#355573;border-color:#355573;box-shadow:inset 0 0 0 2px white}
-.preference-track{background:linear-gradient(to right,#969bc9 50%,#70ada4 50%)}
+/* Each assessment bar's segment lengths and pair of colors are provided by Report.tsx. */
 .review-state{display:block;margin:8px 0}.explore .review-delete{color:#963f46}.explore .review-analyze{background:#28466b;color:white}
 .interview-report{margin:18px 0}.interview-report>summary{font-size:16px;color:#344b65;padding:8px 0}
 .interview-question{border:1px solid #d6dfe7;background:white;border-radius:10px;margin:12px 0;overflow:hidden}
@@ -251,3 +251,6 @@
 .explore .review-query {background:#285b94;color:white;border-color:#285b94;margin:0;padding:7px 18px}
 .explore .review-query:enabled:hover {background:#204c7d;color:white}
 @media(max-width:900px){.review-filters {grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Ease the reading weight of longer advice paragraphs without fading their headings. */
+.career-report > section:last-of-type .career-cards article p { color: #58697D; }
