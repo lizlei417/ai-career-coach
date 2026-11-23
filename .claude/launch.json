@@ -1,0 +1,9 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "v4-local",
+      "url": "http://localhost:8114"
+    }
+  ]
+}

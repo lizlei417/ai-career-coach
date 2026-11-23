@@ -11,6 +11,14 @@ import Overview from './views/Overview'
 import ResumeView from './views/ResumeView'
 import SettingsView from './views/SettingsView'
 
+const navItems = [
+  { key: 'explorer', en: 'Career Explorer', tw: '職業測評', cn: '职业测评' },
+  { key: 'reviews', en: 'Interview Review', tw: '面經復盤', cn: '面经复盘' },
+  { key: 'resume', en: 'Resume', tw: '履歷優化', cn: '简历优化' },
+  { key: 'match', en: 'Job match', tw: '職位匹配', cn: '岗位匹配' },
+  { key: 'interview', en: 'Interview', tw: '模擬面試', cn: '模拟面试' },
+] as const
+
 export default function App() {
   return <Workspace />
 }
@@ -32,8 +40,8 @@ function Workspace() {
         {switching ? <p role="status" className="p-8 text-sm text-ink-500">{s.lang==='en'?'Loading project…':s.lang==='zh-TW'?'正在載入專案…':'正在加载项目…'}</p> : !project.id && !['overview','match','settings','explorer','reviews'].includes(s.feature) ? <p className="p-8 text-sm text-ink-500">{s.lang==='en'?'No projects yet. Choose New project to begin.':s.lang==='zh-TW'?'尚無專案，請點擊「新增專案」開始。':'暂无项目，点击「新建项目」开始。'}</p> : <div className={`mx-auto min-h-full px-8 py-7 xl:px-10 max-w-[1240px]`}>
           {import.meta.env.VITE_PAGES_DEMO === '1' && <p className="mb-4 text-xs text-accent-600">{s.lang === 'en' ? 'Demo Mode · Load the fictional sample for scripted results in English.' : s.lang === 'zh-TW' ? '演示模式 · 填入虛構範例可體驗英文預設結果。' : '演示模式 · 填入虚构示例可体验英文预设结果。'}</p>}
           <header className="sticky top-0 z-10 bg-paper mb-4 flex items-baseline justify-between gap-3 border-b border-paper-200 pb-3">
-            <nav aria-label={s.lang === 'en' ? 'Career tools' : s.lang === 'zh-TW' ? '求職工具' : '求职工具'} className="flex gap-5">
-              {(['resume', 'match', 'interview'] as const).map((feature, i) => <button key={feature} aria-current={s.feature === feature ? 'page' : undefined} onClick={() => setFeature(feature)} className={`border-b-2 pb-3 -mb-[13px] text-sm ${s.feature === feature ? 'border-ink-900 font-semibold text-ink-900' : 'border-transparent text-ink-500 hover:text-ink-900'}`}>{(s.lang === 'en' ? ['Resume', 'Job match', 'Interview'] : s.lang === 'zh-TW' ? ['履歷優化', '職位匹配', '模擬面試'] : ['简历优化', '岗位匹配', '模拟面试'])[i]}</button>)}
+            <nav aria-label={s.lang === 'en' ? 'Career tools' : s.lang === 'zh-TW' ? '求職工具' : '求职工具'} className="flex flex-wrap items-center gap-x-4 gap-y-2 sm:gap-x-5">
+              {navItems.map((item) => <button key={item.key} aria-current={s.feature === item.key ? 'page' : undefined} onClick={() => setFeature(item.key)} className={`whitespace-nowrap border-b-2 pb-3 -mb-[13px] text-sm ${s.feature === item.key ? 'border-ink-900 font-semibold text-ink-900' : 'border-transparent text-ink-500 hover:text-ink-900'}`}>{s.lang === 'en' ? item.en : s.lang === 'zh-TW' ? item.tw : item.cn}</button>)}
             </nav>
             {!['reviews','explorer'].includes(s.feature) && <span className="shrink-0 text-xs text-ink-500" data-saved={!saving && !saveFailed && !resumeDirty}>
               {!saveFailed && (saving ? t('project.saving') : resumeDirty ? (s.lang === 'en' ? 'Unsaved edits' : s.lang === 'zh-TW' ? '尚未儲存' : '尚未保存') : t('project.saved'))}
