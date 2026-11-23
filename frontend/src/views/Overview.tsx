@@ -1,5 +1,4 @@
 import { ArrowRight, BriefcaseBusiness, FileText, MessagesSquare } from 'lucide-react'
-import {useCopy} from '../explore/shared'
 import { useState } from 'react'
 import { useApp } from '../lib/store'
 import { LANG_LABEL, type TKey } from '../lib/i18n'
@@ -10,30 +9,12 @@ export default function Overview() {
   const { t, s, setFeature, llm, isStale, busy } = useApp()
   const m = s.materials
 
-  const {l}=useCopy()
-  const shortcuts = (
-    <nav className="overview-shortcuts" aria-label={l("快捷入口", "Shortcuts")}>
-      {([
-        ['explorer', l('职业测评', 'Career Explorer')],
-        ['reviews', l('面经复盘', 'Interview Review')],
-        ['resume', t('nav.resume')],
-        ['match', t('nav.match')],
-        ['interview', t('nav.interview')],
-      ] as const).map(([feature, label]) => (
-        <button key={feature} onClick={() => setFeature(feature)}
-          className="min-h-10 rounded-md border border-paper-200 bg-white px-2 py-2 text-sm font-medium text-ink-800 transition-colors hover:border-accent-400 hover:bg-paper-50 focus-visible:outline-accent-600">
-          {label}
-        </button>
-      ))}
-    </nav>
-  )
-
   if (!m) {
     const steps = [t('ov.emptyStep1'), t('ov.emptyStep2'), t('ov.emptyStep3')]
     return (
-      <div className="pt-[10vh] animate-rise">
-        <h1 className="font-serif text-[30px] font-medium tracking-[-0.01em] text-ink-900">{t('ov.emptyTitle')}</h1>
-        {shortcuts}
+      <div className="animate-rise">
+        <PageHeader title={t('ov.title')} />
+        <p className="mt-4 text-sm text-ink-600">{t('ov.emptyTitle')}</p>
         <ol className="mt-8 border-t border-paper-200">
           {steps.map((st, i) => (
             <li key={i} className="flex items-center gap-5 border-b border-paper-200 py-4">
@@ -71,11 +52,10 @@ export default function Overview() {
   return (
     <div className="space-y-8 animate-fade">
       <PageHeader
-        title={m.job_title || t('ov.title')}
+        title={t('ov.title')}
         meta={t('mat.lines', { r: facts.filter((l) => !l.heading).length, q: m.requirements.length })}
       />
 
-      {shortcuts}
       {/* features */}
       <section>
         <div className="section-label mb-3">{t('ov.features')}</div>
