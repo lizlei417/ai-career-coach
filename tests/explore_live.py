@@ -32,32 +32,6 @@ def main():
             assert r.is_success, (r.status_code, r.text[:300])
             return r.json()
 
-        # The new material picker must read only the signed-in owner's V3 snapshot.
-        cloud.identity.set(account)
-        cloud.save(
-            "legacy",
-            cloud.Snapshot(
-                name="Legacy",
-                revision=0,
-                state={
-                    "inputs": {
-                        "resumeText": "Fictional V3 CV",
-                        "jdText": "Fictional JD",
-                    }
-                },
-            ),
-            "codex_v3",
-        )
-        assert (
-            ok(c.get("/api/previous-materials/legacy"))["resumeText"]
-            == "Fictional V3 CV"
-        )
-        assert (
-            c.get(
-                "/api/previous-materials/legacy", headers={"Authorization": "Bearer B"}
-            ).status_code
-            == 404
-        )
         assert not ok(c.get("/api/workspaces"))
         cv = "Helped organize a campus careers fair, coordinated five volunteers and analyzed attendee feedback in Excel.\nCreated two weekly event reports and presented findings to the organizing committee."
         ok(c.put("/api/workspaces/qa", json=dict(name="QA", revision=0, state={})))

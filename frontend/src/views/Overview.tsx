@@ -1,5 +1,4 @@
 import { ArrowRight, BriefcaseBusiness, FileText, MessagesSquare } from 'lucide-react'
-import PreviousMaterials from '../explore/PreviousMaterials'
 import {useCopy} from '../explore/shared'
 import { useState } from 'react'
 import { useApp } from '../lib/store'
@@ -12,7 +11,7 @@ export default function Overview() {
   const m = s.materials
 
   const {l}=useCopy()
-  const discovery=<div className="explore"><div className="xgrid">{([['explorer','职业测评','Career Explorer'],['match','发现岗位方向','Discover positions'],['reviews','面经复盘','Interview Review']] as const).map(([f,z,e])=><button key={f} onClick={()=>setFeature(f)}>{l(z,e)} →</button>)}</div><PreviousMaterials/></div>
+  const discovery=<div className="explore"><div className="xgrid">{([['explorer','职业测评','Career Explorer'],['match','发现岗位方向','Discover positions'],['reviews','面经复盘','Interview Review']] as const).map(([f,z,e])=><button key={f} onClick={()=>setFeature(f)}>{l(z,e)} →</button>)}</div></div>
 
   if (!m) {
     const steps = [t('ov.emptyStep1'), t('ov.emptyStep2'), t('ov.emptyStep3')]

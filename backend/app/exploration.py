@@ -386,34 +386,6 @@ async def recommend(project: str, body: PathRequest):
     )
 
 
-# Read-only material reuse. The source namespace and fields are server-selected.
-previous = APIRouter(prefix="/api/previous-materials")
-
-
-@previous.get("")
-def previous_list():
-    with cloud.workspace(namespace="codex_v3") as db:
-        return [
-            dict(id=i, name=n)
-            for i, n in db.execute(
-                "select id,name from career_private.projects order by name"
-            )
-        ]
-
-
-@previous.get("/{project}")
-def previous_materials(project: str):
-    with cloud.workspace(namespace="codex_v3") as db:
-        row = db.execute(
-            "select state->'inputs' from career_private.projects where id=%s",
-            (cloud.valid_id(project),),
-        ).fetchone()
-    if not row:
-        raise HTTPException(404)
-    inputs = row[0] or {}
-    return {k: inputs.get(k) or "" for k in ("resumeText", "jdText", "jobTitle")}
-
-
 @router.get("/paths/{project}")
 def saved_paths(project: str):
     cloud.read(project)

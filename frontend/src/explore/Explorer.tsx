@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { get, post, del } from "../lib/api";
+import { useQuizDraft } from "./quizDraft";
 import { confirmAction } from "../ProductDialog";
 import { useApp } from "../lib/store";
 import { categories, useCopy, useAction, type QuizResult } from "./shared";
@@ -182,50 +183,57 @@ export default function Explorer() {
     { setFeature } = useApp(),
     { busy, message, run } = useAction();
   const [history, setHistory] = useState<QuizResult[]>([]),
-    [selected, select] = useState(""),
-    [answers, setAnswers] = useState<number[]>([]),
-    [cursor, step] = useState(0),
-    [rev, setRev] = useState(0),
-    [ready, setReady] = useState(false);
+    [selected, select] = useState<string | null>(null),
+    [historyFailed, setHistoryFailed] = useState(false);
+  const { draft, store } = useQuizDraft();
+  const { answers, cursor } = draft;
+  const historyVersion = useRef(0);
   async function load() {
-    const [h, d] = await Promise.all([
-      get<QuizResult[]>("/api/explore/assessment"),
-      get<{ answers: number[]; cursor: number; revision: number }[]>(
-        "/api/explore/draft",
-      ),
-    ]);
-    setHistory(h);
-    select(d[0]?.answers.length ? "" : h[0]?.id || "");
-    setAnswers(d[0]?.answers || []);
-    step(d[0]?.cursor || 0);
-    setRev(d[0]?.revision || 0);
-    setReady(true);
+    const version = ++historyVersion.current;
+    try {
+      const results = await get<QuizResult[]>("/api/explore/assessment");
+      if (version !== historyVersion.current) return;
+      setHistory(results);
+      setHistoryFailed(false);
+    } catch {
+      if (version === historyVersion.current) setHistoryFailed(true);
+    }
   }
   useEffect(() => {
-    void run(load);
+    void load();
   }, []);
   const submitId = useRef(crypto.randomUUID());
-  const current = history.find((x) => x.id === selected);
-  async function save(a: number[], c: number) {
-    const d = await post<{ revision: number }>("/api/explore/draft", {
-      answers: a,
-      cursor: c,
-      revision: rev,
-    });
-    setRev(d.revision);
-    setAnswers(a);
-    step(c);
-  }
+  const defaultId =
+    draft.loaded && !answers.length && !draft.pending
+      ? history[0]?.id
+      : undefined;
+  const current = history.find((x) => x.id === (selected ?? defaultId));
   return (
     <section className="explore">
       <h1>{l("职业测评", "Career Explorer")}</h1>
-      {message && (
-        <p role="alert">
-          {message}{" "}
-          <button onClick={() => run(load)}>{l("重试", "Retry")}</button>
+      {message && <p role="alert">{message}</p>}
+      {(draft.failed || historyFailed) && (
+        <p role="status">
+          {draft.failed
+            ? l(
+                "草稿尚未同步，可以继续答题。",
+                "Draft sync is pending. You can keep answering.",
+              )
+            : l(
+                "测评历史暂未载入。",
+                "Assessment history is unavailable.",
+              )}{" "}
+          <button
+            onClick={() => {
+              void store.sync();
+              void load();
+            }}
+          >
+            {l("重试", "Retry")}
+          </button>
         </p>
       )}
-      <fieldset disabled={busy || !ready}>
+      <fieldset disabled={busy}>
         {current ? (
           <article>
             <h2>{l(names[current.profile][0], names[current.profile][1])}</h2>
@@ -257,12 +265,10 @@ export default function Explorer() {
               {l("查看适合我的岗位", "View suitable positions")}
             </button>
             <button
-              onClick={() =>
-                run(async () => {
-                  await save([], 0);
-                  select("");
-                })
-              }
+              onClick={() => {
+                store.edit({ reset: true, cursor: 0 });
+                select("");
+              }}
             >
               {l("重新测试", "Retake")}
             </button>
@@ -282,20 +288,21 @@ export default function Explorer() {
                 <button
                   aria-pressed={answers[cursor] === i + 1}
                   key={b}
-                  onClick={() =>
-                    run(async () => {
-                      let next = [...answers];
-                      next[cursor] = i + 1;
-                      await save(next, Math.min(cursor + 1, 11));
-                    })
-                  }
+                  onClick={() => {
+                    select("");
+                    store.edit({
+                      index: cursor,
+                      value: i + 1,
+                      cursor: Math.min(cursor + 1, 11),
+                    });
+                  }}
                 >
                   {l(a, b)}
                 </button>
               ))}
             </div>
             {cursor > 0 && (
-              <button onClick={() => run(() => save(answers, cursor - 1))}>
+              <button onClick={() => store.edit({ cursor: cursor - 1 })}>
                 {l("上一题", "Previous")}
               </button>
             )}
@@ -307,9 +314,14 @@ export default function Explorer() {
                       "/api/explore/assessment/" + submitId.current,
                       { answers },
                     );
-                    await save([], 0);
+                    store.edit({ reset: true, cursor: 0 });
                     submitId.current = crypto.randomUUID();
-                    setHistory([r, ...history]);
+                    historyVersion.current++;
+                    setHistoryFailed(false);
+                    setHistory((rows) => [
+                      r,
+                      ...rows.filter((x) => x.id !== r.id),
+                    ]);
                     select(r.id);
                   })
                 }
@@ -342,6 +354,7 @@ export default function Explorer() {
                             "?revision=" +
                             h.revision,
                         );
+                        select(null);
                         await load();
                       }
                     })
@@ -354,7 +367,7 @@ export default function Explorer() {
           </article>
         )}
       </fieldset>
-      {busy && <p role="status">{l("正在同步…", "Syncing…")}</p>}
+      {busy && <p role="status">{l("正在处理…", "Working…")}</p>}
     </section>
   );
 }

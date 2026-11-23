@@ -9,6 +9,7 @@ with sync_playwright() as pw:
     b = pw.chromium.launch(channel="chrome")
     p = b.new_page(viewport={"width": 1440, "height": 960})
     p.set_default_timeout(22000)
+    expect.set_options(timeout=22000)
     errors = []
     p.on("pageerror", lambda e: errors.append(str(e)))
 
@@ -24,11 +25,32 @@ with sync_playwright() as pw:
     f.locator("[name=password]").fill("fixture-password")
     f.locator("button").click()
     p.locator(".workspace").wait_for()
+    # Hold the initial server read and then the first write independently.
+    held_reads,held_writes=[],[]
+    def slow_draft(route):
+        if route.request.method=="GET" and not held_reads:
+            held_reads.append(route)
+        elif route.request.method=="POST" and not held_writes:
+            held_writes.append(route)
+        else:
+            route.continue_()
+    p.route("**/api/explore/draft",slow_draft)
     nav("职业测评")
     for i in range(6):
         expect(p.locator(".explore small").first).to_have_text(f"{i+1} / 12")
         click("较同意")
+        if i==1:
+            expect(p.locator(".explore small").first).to_have_text("3 / 12",timeout=800)
+            assert held_reads
+            held_reads[0].continue_()
+            for _ in range(50):
+                if held_writes:break
+                p.wait_for_timeout(50)
+            assert held_writes
     expect(p.locator(".explore small").first).to_have_text("7 / 12")
+    # Simulate a failed upload: the six answers must survive a full reload.
+    held_writes[0].abort()
+    p.unroute("**/api/explore/draft",slow_draft)
     p.reload()
     expect(p.locator(".explore small").first).to_have_text("7 / 12")
     click("上一题")

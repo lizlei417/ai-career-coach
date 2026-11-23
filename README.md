@@ -9,7 +9,7 @@ V4 从 V3 提交 `495acc91f884d4ca971d350c63f8dfd13aa62eef` 独立开发。进�
 | 岗位方向、招聘与匹配 | `/v4/workspace/match` |
 | 面经复盘 | `/v4/workspace/reviews` |
 
-在本目录运行 `./start.sh`，打开 [本地 V4](http://127.0.0.1:8114/v4/) 。首次构建需要 Node 22、npm 和 Python 3.11+。使用 V3 原有的 Supabase、PostgreSQL 与 DeepSeek 服务端配置。Lever 招聘板无需新增密钥。已有账户可以登录 V4，在工作台将本人 V3 项目的简历文本、目标岗位与 JD 复制到选定的 V4 项目。
+在本目录运行 `./start.sh`，打开 [本地 V4](http://127.0.0.1:8114/v4/) 。首次构建需要 Node 22、npm 和 Python 3.11+。使用 V3 原有的 Supabase、PostgreSQL 与 DeepSeek 服务端配置。Lever 招聘板无需新增密钥。登录后可在当前项目中编辑求职材料。
 
 V4 普通项目使用 `codex_v4`，账户测评、复盘和推荐使用 `codex_v4_exploration`。模型限额仍按同一账户、香港日期跨版本计数。已有 V3 数据库无需迁移。Render 配置以独立预览服务为目标，默认关闭自动部署。
 

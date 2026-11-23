@@ -207,7 +207,6 @@ async def kb_search(req: SearchReq):
 
 from . import exploration, positions
 app.include_router(exploration.router)
-app.include_router(exploration.previous)
 app.include_router(positions.router)
 
 # ---------------------------------------------------------------- static frontend (production)
