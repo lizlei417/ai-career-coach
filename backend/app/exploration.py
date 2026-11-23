@@ -69,7 +69,8 @@ def scores(answers):
 
 @router.post("/draft")
 def draft(q: Quiz):
-    scores(q.answers)
+    if any(v not in range(6) for v in q.answers):
+        raise HTTPException(422)
     return write("draft", "draft", q.revision, dict(answers=q.answers, cursor=q.cursor))
 
 
@@ -163,12 +164,14 @@ class Edit(BaseModel):
 @router.post("/review/{id}")
 def edit(id: UUID, body: Edit):
     key = "review-" + str(id)
-    _, old = record("review", key)
+    revision, old = record("review", key)
     data = body.review.model_dump(mode="json")
     if not data["role"].strip() or any(
         not q["question"].strip() for q in data["questions"]
     ):
         raise HTTPException(422)
+    if revision and old.get("review") == data:
+        return dict(id=key, revision=revision, **old)
     return write(
         "review", key, body.revision, dict(review=data, history=old.get("history", []))
     )
@@ -198,7 +201,13 @@ def text_field(value):
     return ""
 
 
-def review_output(result, review):
+def review_output(result, review, lang="zh-CN", resume=""):
+    sparse = {"忘了", "忘记了", "忘記了", "不记得", "不記得", "没有回答", "沒有回答", "i forgot", "i don't remember", "no answer"}
+    def minimal(answer):
+        return answer.strip().casefold().strip("。.!！?？ ") in sparse
+
+    if not isinstance(result, dict):
+        raise HTTPException(502, "AI_FORMAT")
     items = result.get("items")
     if not isinstance(items, list) or len(items) != len(review["questions"]):
         raise HTTPException(502, "AI_FORMAT")
@@ -206,9 +215,15 @@ def review_output(result, review):
         result[k] = text_field(result.get(k))
         if not result[k]:
             raise HTTPException(502, "AI_FORMAT")
-    for item, q in zip(items, review["questions"]):
+    for index, (item, q) in enumerate(zip(items, review["questions"]), start=1):
         if not isinstance(item, dict):
             raise HTTPException(502, "AI_FORMAT")
+        if item.get("question_id") != index or not isinstance(item.get("question_type"), str):
+            raise HTTPException(502, "AI_FORMAT")
+        quote = item.pop("resume_quote", "")
+        item["grounded"] = bool(isinstance(quote, str) and quote.strip() and quote in resume)
+        if minimal(q["answer"]):
+            item["evaluation"] = {"zh-CN":"这条记录没有描述具体做法，无法据此判断你的贡献或当时的完整表现。","zh-TW":"這條紀錄沒有描述具體做法，無法據此判斷你的貢獻或當時的完整表現。","en":"This note gives no details about your actions. It is too little evidence to judge your contribution or the full interview answer."}[lang]
         for k in ("intent", "evaluation", "improve", "example"):
             if k == "evaluation" and not q["answer"].strip():
                 item[k] = ""
@@ -216,6 +231,8 @@ def review_output(result, review):
             item[k] = text_field(item.get(k))
             if not item[k]:
                 raise HTTPException(502, "AI_FORMAT")
+    if all(not q["answer"].strip() or minimal(q["answer"]) for q in review["questions"]):
+        result["strengths"] = {"zh-CN":"当前记录较少，暂时不足以评价本次面试中的优势。","zh-TW":"目前紀錄較少，暫時不足以評價本次面試中的優勢。","en":"The available notes are too limited to identify strengths in this interview."}[lang]
     return result
 
 
@@ -320,10 +337,17 @@ async def analyze(id: UUID, body: Analyze):
         '"practice":"question types to practise","checklist":"concrete preparation checklist"}. '
         f"The items array must contain {len(review['questions'])} objects. For missing answers set only evaluation "
         "to an empty string and still complete intent, improve and example. If no answers exist, say this "
-        "in strengths. Use a behavioral, technical, motivation or case structure as appropriate.",
-        dict(review=review, resume=body.resume),
+        "in strengths. Include the exact integer question_id from the input, a short localized question_type, and resume_quote in each item (verbatim evidence from supplied resume or empty). "
+        "Distinguish interviewing employer from employers mentioned in past experience. For thin notes acknowledge uncertainty, "
+        "never infer lack of ability or embellish a forgotten answer. Focus on one role-specific assessment point, "
+        "one concrete next step, then a speakable suggested answer or short framework with [placeholders]. "
+        "Never invent duties, numbers or achievements, even as examples. Use only facts attached to that same experience. "
+        "For technical, case and motivation questions use a suitable reasoning structure. Across questions deduplicate priorities "
+        "(2-3 bullets), practice (2-4 actual follow-up questions), checklist (3-5 distinct preparation tasks). "
+        "Use arrays of strings for these three summary fields. Avoid repeating item-level feedback.",
+        dict(review={**review, "questions": [dict(q, question_id=i) for i,q in enumerate(review["questions"],1)]}, resume=body.resume),
         body.lang,
-        lambda r: review_output(r, review),
+        lambda r: review_output(r, review, body.lang, body.resume),
     )
     entry = dict(
         result=result,

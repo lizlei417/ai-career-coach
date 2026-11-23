@@ -1,10 +1,11 @@
+import { useCopy } from "../explore/shared"
 import Discovery from '../explore/Discovery'
 import { Check, Info, Plus, RefreshCw } from 'lucide-react'
 import { useState } from 'react'
 import { useApp } from '../lib/store'
 import type { TKey } from '../lib/i18n'
 import type { MatchItem, Requirement } from '../lib/types'
-import { Button, ErrorNote, GuidancePanel, NeedMaterials, PageHeader, ResultBanners, SourceId, Tag, WorkingState } from '../components/ui'
+import { Button, ErrorNote, GuidancePanel, PageHeader, ResultBanners, SourceId, Tag, WorkingState } from '../components/ui'
 
 export function StatusMark({ status, size = 12 }: { status: MatchItem['status']; size?: number }) {
   const c = status === 'direct' ? '#2F6449' : status === 'partial' ? '#A3742A' : '#8A93A3'
@@ -24,7 +25,16 @@ export function StatusMark({ status, size = 12 }: { status: MatchItem['status'];
 
 export default function MatchView() {
   const { t, s, ready, busy, errors, generateMatch, clearError, isStale } = useApp()
-  if (!ready) return <div className="space-y-5"><PageHeader title={t('jm.title')} /><Discovery/><ErrorNote code={errors.match} onClose={()=>clearError('match')}/><NeedMaterials /></div>
+  const { l } = useCopy()
+  if (!ready) {
+    const resume = !!s.inputs.resumeText.trim(), jd = !!s.inputs.jdText.trim()
+    const hint = resume && jd ? l("资料已就绪，点击左下方「开始分析」。", "Materials are ready. Choose Start analysis.")
+      : resume ? l("粘贴岗位描述，或从招聘列表选择职位进行分析。", "Paste a job description or select an opening above.")
+      : jd ? l("请先上传简历，开始匹配分析。", "Add your resume to analyze this match.")
+      : l("上传简历，或从上方招聘列表选择感兴趣的岗位，开始你的岗位匹配分析。", "Add a resume or explore the openings above to get started.")
+    return <div className="space-y-5"><PageHeader title={t('jm.title')} /><Discovery/><ErrorNote code={errors.match} onClose={()=>clearError('match')}/>
+      {busy.prepare || busy.match ? <WorkingState label={t('jm.running')} rows={3}/> : <p className="text-center text-sm text-ink-500">{hint}</p>}</div>
+  }
   const r = s.match
   const reqs = s.materials!.requirements
   const reqMap = new Map(reqs.map((q) => [q.id, q]))
@@ -36,7 +46,6 @@ export default function MatchView() {
     <div className="space-y-5 animate-fade">
       <PageHeader
         title={t('jm.title')}
-        meta={s.materials?.job_title}
         actions={r ? (
           <Button variant="secondary" size="sm" loading={busy.match} onClick={generateMatch} icon={<RefreshCw className="h-3.5 w-3.5" />}>
             {t('common.regenerate')}

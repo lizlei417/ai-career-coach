@@ -5,6 +5,7 @@ import html
 import re
 import time
 from datetime import datetime, timezone
+from functools import lru_cache
 from html.parser import HTMLParser
 from urllib.parse import urlsplit
 from uuid import UUID
@@ -52,7 +53,7 @@ def normalize(board, item):
         if (
             parts.scheme == "https"
             and parts.netloc == "jobs.lever.co"
-            and parts.path.rstrip("/") in (f"/{board}/{id}", f"/{board}/{id}/apply")
+            and parts.path.rstrip("/") == f"/{board}/{id}" + ("/apply" if key == "applyUrl" else "")
         ):
             return url
         return ""
@@ -77,7 +78,7 @@ def normalize(board, item):
         kind=categories.get("commitment", ""),
         jd=jd,
         url=link("hostedUrl"),
-        apply=link("applyUrl") or link("hostedUrl"),
+        apply=link("applyUrl"),
     )
 
 
@@ -145,6 +146,11 @@ def eligible(job, region, kind, path, keyword):
     )
 
 
+@lru_cache(maxsize=64)
+def filtered_rows(snapshot, region, kind, path, keyword):
+    return [job for job in cache["rows"] if eligible(job, region, kind, path, keyword)]
+
+
 @router.get("")
 async def listing(
     region: str = "",
@@ -153,6 +159,7 @@ async def listing(
     keyword: str = Query("", max_length=100),
     page: int = Query(1, ge=1, le=1000),
     refresh: bool = False,
+    all_results: bool = False,
 ):
     async with lock:
         now = time.monotonic()
@@ -168,6 +175,7 @@ async def listing(
                 for board, batch in zip(BOARDS, batches)
                 if isinstance(batch, Exception)
             ]
+            filtered_rows.cache_clear()
             cache.update(
                 time=now,
                 synced=datetime.now(timezone.utc).isoformat(),
@@ -176,15 +184,12 @@ async def listing(
             )
     if len(cache["failed"]) == len(BOARDS):
         raise HTTPException(503, "POSITIONS_UNAVAILABLE")
-    rows = [j for j in cache["rows"] if eligible(j, region, kind, path, keyword)]
+    rows = filtered_rows(cache["synced"], region, kind, path, keyword)
     return dict(
         total=len(rows),
         synced=cache["synced"],
         failed=cache["failed"],
-        jobs=[
-            {k: v for k, v in j.items() if k != "jd"}
-            for j in rows[(page - 1) * 3 : page * 3]
-        ],
+        jobs=rows if all_results else rows[(page - 1) * 3 : page * 3],
     )
 
 

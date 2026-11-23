@@ -19,6 +19,7 @@ function apply(base: Draft, edits: Edit[]): Draft {
     if (edit.index !== undefined && edit.value !== undefined) {
       if (answers.length < edit.index)
         answers.push(...(edit.prefix || []).slice(answers.length, edit.index));
+      while (answers.length < edit.index) answers.push(0);
       answers[edit.index] = edit.value;
     }
     cursor = edit.cursor;

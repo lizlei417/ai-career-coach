@@ -3,7 +3,7 @@ import { guardResumeNavigation } from './resume-navigation'
 import { requestCareerProfile } from './career-profile'
 import {publicHome,entryFeature,changeFeature,rememberLanguage} from '../cloud'
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { renameProject as renameSaved, deleteProject as deleteSaved,readProject,saveProject, type Project, type SavedProject } from './projects'
+import { renameProject as renameSaved, deleteProject as deleteSaved,readProject,saveProject,trackProjectWrite, type Project, type SavedProject } from './projects'
 import { ApiError, get, post } from './api'
 import { errorKey, translate, type TKey } from './i18n'
 import type {
@@ -178,6 +178,7 @@ export function AppProvider({ children, project, projects, select, create, renam
   const lastSaved=useRef(s)
   const revision = useRef(project.revision)
   const pendingSave = useRef(Promise.resolve())
+  const supersedeDraft = useRef<(() => void) | null>(null)
   const projectName=useRef(project.name)
   projectName.current=project.name
   useEffect(() => {
@@ -197,15 +198,23 @@ export function AppProvider({ children, project, projects, select, create, renam
   }
   useLayoutEffect(() => {
     if(!project.id||lastSaved.current===s)return
+    const formChanged = lastSaved.current.inputs !== s.inputs || lastSaved.current.drafts !== s.drafts
     lastSaved.current=s
     let current = true
     setSaving(true)
     const name=projectName.current
-    const write = pendingSave.current.catch(() => {}).then(async () => {
+    supersedeDraft.current?.()
+    let superseded = false
+    const delay = formChanged ? new Promise<void>(resolve => {
+      const timer = window.setTimeout(() => { supersedeDraft.current = null; resolve() }, 350)
+      supersedeDraft.current = () => { superseded = true; clearTimeout(timer); resolve() }
+    }) : Promise.resolve()
+    const write = Promise.all([pendingSave.current.catch(() => {}), delay]).then(async () => {
+      if (superseded) return
       revision.current = await saveProject({ id: project.id, name, revision: revision.current, state: s })
       confirmedResume.current={current:s.finalResume,history:s.finalResumeHistory || []}
     })
-    pendingSave.current = write
+    pendingSave.current = trackProjectWrite(write)
     function finish(failed: boolean) {
       if (!current) return
       setSaveFailed(failed)
@@ -550,7 +559,7 @@ export function AppProvider({ children, project, projects, select, create, renam
         revision.current = await saveProject({ id: project.id, name: projectName.current, revision: revision.current, state })
         confirmedResume.current={current:state.finalResume,history:state.finalResumeHistory || []}
       })
-      pendingSave.current = write
+      pendingSave.current = trackProjectWrite(write)
       try { await write; setSaveFailed(false) } catch { setSaveFailed(true) } finally { setSaving(false) }
     },
     setDraft: (id, value) => patch(c => ({ drafts: { ...c.drafts, [id]: value } })),

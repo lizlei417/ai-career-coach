@@ -1,9 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { ownerKey } from "../cloud";
 import { registerResumeGuard } from "../lib/resume-navigation";
 import { get, post, del } from "../lib/api";
 import { useApp } from "../lib/store";
 import { confirmAction } from "../ProductDialog";
 import { useCopy, useAction } from "./shared";
+
+import { InterviewQuestions, InterviewAnalysis } from "./InterviewReport";
+import ReviewDate from "./ReviewDate";
 
 const fields = {
   question: ["面试官的问题", "Question"],
@@ -18,7 +22,7 @@ const blank = (): Question => ({
   reflection: "",
   feedback: "",
 });
-interface Review {
+export interface Review {
   date: string;
   company: string;
   role: string;
@@ -35,16 +39,18 @@ const formats: Record<string, [string, string]> = {
   phone: ["电话", "Phone"],
   other: ["其他", "Other"],
 };
-interface Analysis {
+export interface Analysis {
   time: string;
   input: Review;
-  result: {
-    items: Record<string, string>[];
-    strengths: string;
-    priorities: string;
-    practice: string;
-    checklist: string;
-  };
+  result:
+    | string
+    | {
+        items: (Record<string, string> & { grounded?: boolean })[];
+        strengths: string;
+        priorities: string;
+        practice: string;
+        checklist: string;
+      };
 }
 interface Entry {
   id: string;
@@ -52,6 +58,62 @@ interface Entry {
   updated: string;
   review: Review;
   history: Analysis[];
+}
+// The account library is shared by all projects. Keep one snapshot per signed-in
+// owner and reconcile writes that finish while a list request is in flight.
+function reviewLibrary() {
+  const key = ownerKey("review-library-v1");
+  if (library?.key === key) return library;
+  let rows: Entry[] | undefined;
+  try {
+    const stored = JSON.parse(sessionStorage.getItem(key) || "null");
+    if (Array.isArray(stored)) rows = stored;
+  } catch { /* Storage is optional. */ }
+  let synced = 0;
+  let pending: Promise<void> | undefined;
+  const changes = new Map<string, Entry | null>();
+  const listeners = new Set<() => void>();
+  function publish(next: Entry[]) {
+    if (library?.key !== key || ownerKey("review-library-v1") !== key) return;
+    rows = next;
+    try { sessionStorage.setItem(key, JSON.stringify(next)); }
+    catch { try { sessionStorage.removeItem(key); } catch { /* Memory-only cache. */ } }
+    listeners.forEach(listener => listener());
+  }
+  function update(id: string, entry: Entry | null) {
+    if (pending) changes.set(id, entry);
+    const other = (rows || []).filter(item => item.id !== id);
+    publish(entry ? [entry, ...other] : other);
+  }
+  library = {
+    key,
+    snapshot: () => rows,
+    subscribe: (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener); }; },
+    update,
+    read() {
+      if (pending) return pending;
+      if (Date.now() - synced < 30000) return Promise.resolve();
+      pending = get<Entry[]>("/api/explore/review").then(fetched => {
+        const merged = new Map(fetched.map(row => [row.id, row]));
+        changes.forEach((entry, id) => { if (entry) merged.set(id, entry); else merged.delete(id); });
+        publish(Array.from(merged.values()));
+        synced = Date.now();
+      }).finally(() => { changes.clear(); pending = undefined; });
+      return pending;
+    },
+  };
+  return library;
+}
+let library: {
+  key: string;
+  snapshot: () => Entry[] | undefined;
+  subscribe: (listener: () => void) => () => void;
+  update: (id: string, entry: Entry | null) => void;
+  read: () => Promise<void>;
+} | undefined;
+export function clearReviewLibrary() {
+  library = undefined;
+  sessionStorage.removeItem(ownerKey("review-library-v1"));
 }
 function sameReview(a: Review, b: Review) {
   return Object.keys(a).every((k) =>
@@ -86,19 +148,27 @@ export async function importMock(
   project: string,
   questions: Question[],
 ) {
-  return post<Entry>("/api/explore/review/" + crypto.randomUUID(), {
+  const cache = reviewLibrary();
+  const entry = await post<Entry>("/api/explore/review/" + crypto.randomUUID(), {
     revision: 0,
     review: { ...fresh(), role, project, source: "mock", questions },
   });
+  cache.update(entry.id, entry);
+  return entry;
 }
 export default function Reviews() {
-  const { l } = useCopy(),
-    { s, project, projects, setFeature } = useApp(),
+  const { l, error } = useCopy(),
+    { s, project, setFeature } = useApp(),
     { busy, run, message } = useAction();
-  const [entries, list] = useState<Entry[]>([]),
-    [selected, select] = useState(""),
+  const draftId = useRef("");
+  const [action, setAction] = useState<"load" | "save" | "analyze" | "delete">(
+    "load",
+  );
+  const cache = reviewLibrary();
+  const snapshot = useSyncExternalStore(cache.subscribe, cache.snapshot);
+  const entries = snapshot || [];
+  const [selected, select] = useState(""),
     [form, edit] = useState<Review | null>(null),
-    [useResume, include] = useState(false),
     [notice, say] = useState("");
   const [filters, filter] = useState({
     company: "",
@@ -106,13 +176,22 @@ export default function Reviews() {
     round: "",
     date: "",
   });
+  const [appliedFilters, applyFilters] = useState(filters);
+  const visibleEntries = entries.filter(e => Object.entries(appliedFilters).every(([key, value]) =>
+    String(e.review[key as keyof Review]).toLowerCase().includes(value.trim().toLowerCase())
+  )).sort((a, b) => b.review.date.localeCompare(a.review.date));
   const current = entries.find((e) => e.id === selected);
-  async function load() {
-    list(await get<Entry[]>("/api/explore/review"));
-  }
+  const loading = snapshot === undefined;
+  const [loadError, setLoadError] = useState("");
+  const [attempt, retry] = useState(0);
   useEffect(() => {
-    void run(load);
-  }, []);
+    let active = true;
+    setLoadError("");
+    cache.read().catch(e => { if (active) setLoadError(error(e)); });
+    return () => {
+      active = false;
+    };
+  }, [cache, attempt]);
   useEffect(() => {
     if (!form) return;
     const unload = (event: BeforeUnloadEvent) => {
@@ -129,7 +208,7 @@ export default function Reviews() {
     };
   }, [!!form, s.lang]);
   function adopt(e: Entry) {
-    list((rows) => [e, ...rows.filter((x) => x.id !== e.id)]);
+    cache.update(e.id, e);
     select(e.id);
     edit(null);
   }
@@ -146,12 +225,12 @@ export default function Reviews() {
   const analyze = () =>
     run(async () => {
       if (!current) return;
+      setAction("analyze");
       adopt(
         await post<Entry>(
           "/api/explore/review/" + current.id.slice(7) + "/analyze",
           {
             lang: s.lang,
-            resume: useResume ? s.inputs.resumeText.slice(0, 12000) : "",
             revision: current.revision,
           },
         ),
@@ -166,11 +245,12 @@ export default function Reviews() {
           <form
             onSubmit={(e) => {
               e.preventDefault();
+              setAction("save");
               void run(async () => {
                 adopt(
                   await post<Entry>(
                     "/api/explore/review/" +
-                      (current ? current.id.slice(7) : crypto.randomUUID()),
+                      (current ? current.id.slice(7) : draftId.current),
                     { review: form, revision: current?.revision || 0 },
                   ),
                 );
@@ -181,18 +261,27 @@ export default function Reviews() {
             <article>
               <div className="xgrid">
                 {(Object.keys(formLabels) as (keyof typeof formLabels)[]).map(
-                  (k) => (
-                    <label key={k}>
-                      {l(formLabels[k][0], formLabels[k][1])}
-                      <input
-                        required={k === "date" || k === "role"}
-                        type={k === "date" ? "date" : "text"}
-                        maxLength={k === "round" ? 80 : 160}
-                        value={form[k]}
-                        onChange={(e) => replace(k, e.target.value)}
-                      />
-                    </label>
-                  ),
+                  (k) =>
+                    k === "date" ? (
+                      <div key={k}>
+                        {l(...formLabels.date)}
+                        <ReviewDate
+                          value={form.date}
+                          change={(v) => replace("date", v)}
+                        />
+                      </div>
+                    ) : (
+                      <label key={k}>
+                        {l(formLabels[k][0], formLabels[k][1])}
+                        <input
+                          required={k === "role"}
+                          type="text"
+                          maxLength={k === "round" ? 80 : 160}
+                          value={form[k]}
+                          onChange={(e) => replace(k, e.target.value)}
+                        />
+                      </label>
+                    ),
                 )}
                 <label>
                   {l("面试形式", "Format")}
@@ -203,20 +292,6 @@ export default function Reviews() {
                     {Object.entries(formats).map(([k, v]) => (
                       <option key={k} value={k}>
                         {l(...v)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  {l("关联项目", "Linked project")}
-                  <select
-                    value={form.project}
-                    onChange={(e) => replace("project", e.target.value)}
-                  >
-                    <option value="">—</option>
-                    {projects.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
                       </option>
                     ))}
                   </select>
@@ -329,24 +404,22 @@ export default function Reviews() {
                   : l("真实面试", "Real interview")}
               </small>
               <p>{current.review.notes}</p>
-              {current.review.questions.map((q, i) => (
-                <details key={i} open>
-                  <summary>
-                    {i + 1}. {q.question}
-                  </summary>
-                  <p>
-                    {q.answer || l("未提供当时的回答", "No answer recorded")}
-                  </p>
-                  <p>{q.reflection}</p>
-                  <p>{q.feedback}</p>
-                </details>
-              ))}
+              <small className="review-state">
+                {current.review.questions.length} {l("道问题", "questions")} ·{" "}
+                {busy && action === "analyze"
+                  ? l("AI 正在分析中", "Analyzing")
+                  : current.history.length
+                    ? l("已分析", "Analyzed")
+                    : l("待分析", "Awaiting analysis")}
+              </small>
               <button onClick={() => edit(current.review)}>
                 {l("编辑", "Edit")}
               </button>
               <button
+                className="review-delete"
                 onClick={() =>
                   run(async () => {
+                    setAction("delete");
                     if (
                       await confirmAction(
                         l(
@@ -362,37 +435,31 @@ export default function Reviews() {
                           current.revision,
                       );
                       select("");
-                      await load();
+                      cache.update(current.id, null);
                     }
                   })
                 }
               >
                 {l("删除", "Delete")}
               </button>
-              {s.inputs.resumeText && (
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={useResume}
-                    onChange={(e) => include(e.target.checked)}
-                  />
-                  {l("参考当前项目简历", "Include current project resume")} ·{" "}
-                  {project.name}
-                </label>
-              )}
-              <button onClick={analyze}>
+              <button className="review-analyze" onClick={analyze}>
                 {current.history.length
                   ? l("重新分析", "Analyze again")
                   : l("AI 复盘分析", "Analyze with AI")}
               </button>
             </article>
+            {(!current.history[0]?.input ||
+              !sameReview(current.history[0].input, current.review) ||
+              typeof current.history[0].result === "string") && (
+              <InterviewQuestions review={current.review} />
+            )}
             {current.history.map((a, j) => (
-              <article key={a.time}>
-                <h2>
+              <details className="interview-report" open={j === 0} key={a.time}>
+                <summary>
                   {l("复盘报告", "Review report")} ·{" "}
-                  {new Date(a.time).toLocaleString()}
-                </h2>
-                {!sameReview(a.input, current.review) && (
+                  {new Date(a.time).toLocaleString(s.lang)}
+                </summary>
+                {a.input && !sameReview(a.input, current.review) && (
                   <p role="status">
                     {l(
                       "面经已修改，这份报告对应旧版本。",
@@ -400,46 +467,8 @@ export default function Reviews() {
                     )}
                   </p>
                 )}
-                <details open={!j}>
-                  <summary>{l("查看分析", "View analysis")}</summary>
-                  {a.result.items.map((v, i) => (
-                    <div key={i}>
-                      <h3>{a.input.questions[i].question}</h3>
-                      {[
-                        ["intent", "考察点", "Interviewer intent"],
-                        ["evaluation", "回答评价", "Answer feedback"],
-                        ["improve", "改进建议", "Improvements"],
-                        ["example", "参考回答", "Example answer"],
-                      ].map(([k, z, e]) => (
-                        <p key={k}>
-                          <strong>{l(z, e)}</strong> ·{" "}
-                          {v[k] || l("未提供当时的回答", "No answer recorded")}
-                        </p>
-                      ))}
-                    </div>
-                  ))}
-                  {(
-                    [
-                      "strengths",
-                      "priorities",
-                      "practice",
-                      "checklist",
-                    ] as const
-                  ).map((k, i) => (
-                    <p key={k}>
-                      <strong>
-                        {l(
-                          ["主要优点", "改进重点", "练习题型", "准备清单"][i],
-                          ["Strengths", "Priorities", "Practice", "Checklist"][
-                            i
-                          ],
-                        )}
-                      </strong>{" "}
-                      · {a.result[k]}
-                    </p>
-                  ))}
-                </details>
-              </article>
+                <InterviewAnalysis report={a} />
+              </details>
             ))}
             {project.id === current.review.project && (
               <button onClick={() => setFeature("interview")}>
@@ -451,36 +480,40 @@ export default function Reviews() {
           <>
             <button
               onClick={() => {
+                draftId.current = crypto.randomUUID();
                 edit(fresh());
                 say("");
               }}
             >
               {l("＋ 新建面经", "＋ New interview record")}
             </button>
-            <div className="xgrid">
-              {(Object.keys(filters) as (keyof typeof filters)[]).map((k) => (
-                <label key={k}>
-                  {l(formLabels[k][0], formLabels[k][1])}
-                  <input
-                    type={k === "date" ? "date" : "search"}
-                    value={filters[k]}
-                    onChange={(e) =>
-                      filter({ ...filters, [k]: e.target.value })
-                    }
-                  />
-                </label>
-              ))}
-            </div>
-            {entries
-              .filter((e) =>
-                Object.entries(filters).every(([k, v]) =>
-                  String(e.review[k as keyof Review])
-                    .toLowerCase()
-                    .includes(v.toLowerCase()),
+            <div className="review-filters">
+              {(Object.keys(filters) as (keyof typeof filters)[]).map((k) =>
+                k === "date" ? (
+                  <div key={k}>
+                    {l(...formLabels.date)}
+                    <ReviewDate
+                      clearable
+                      value={filters.date}
+                      change={(v) => filter({ ...filters, date: v })}
+                    />
+                  </div>
+                ) : (
+                  <label key={k}>
+                    {l(formLabels[k][0], formLabels[k][1])}
+                    <input
+                      type="search"
+                      value={filters[k]}
+                      onChange={(e) =>
+                        filter({ ...filters, [k]: e.target.value })
+                      }
+                    />
+                  </label>
                 ),
-              )
-              .sort((a, b) => b.review.date.localeCompare(a.review.date))
-              .map((e) => (
+              )}
+              <button type="button" className="review-query" onClick={() => applyFilters(filters)}>{l("查询", "Search")}</button>
+            </div>
+            {visibleEntries.map((e) => (
                 <article key={e.id}>
                   <small>
                     {e.review.date} · {e.review.round} ·{" "}
@@ -504,7 +537,19 @@ export default function Reviews() {
                   </button>
                 </article>
               ))}
-            {!entries.length && !busy && (
+            {!!entries.length && !visibleEntries.length && <p role="status">{l("没有符合条件的面经","No matching records")}</p>}
+            {loading && !loadError && (
+              <p role="status">{l("正在读取面经", "Loading interviews")}…</p>
+            )}
+            {loadError && (
+              <p role="alert">
+                {loadError}{" "}
+                <button onClick={() => retry((n) => n + 1)}>
+                  {l("重试", "Retry")}
+                </button>
+              </p>
+            )}
+            {!entries.length && !loading && !loadError && !busy && (
               <p>
                 {l(
                   "记录一次面试中的问题，之后可以回来补写回答。",
@@ -516,9 +561,22 @@ export default function Reviews() {
         )}
       </fieldset>
       <p role="status">
-        {busy
-          ? l("正在处理，请稍候…", "Working, please wait…")
-          : message || notice}
+        {busy ? (
+          <>
+            {action === "analyze"
+              ? l("AI 正在分析中", "AI is analyzing your interview")
+              : action === "save"
+                ? l("正在保存草稿", "Saving draft")
+                : action === "delete"
+                  ? l("正在删除", "Deleting")
+                  : l("正在读取面经", "Loading interviews")}
+            <span className="working-dots" aria-hidden="true">
+              ...
+            </span>
+          </>
+        ) : (
+          message || notice
+        )}
       </p>
     </section>
   );

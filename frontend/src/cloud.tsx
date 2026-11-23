@@ -19,6 +19,7 @@ const base = import.meta.env.BASE_URL;
 let client: SupabaseClient;
 let appId = "";
 let owner = "";
+let activeSession: Session | null = null;
 let revision = 0;
 let setup: Promise<void> | undefined;
 let queued = Promise.resolve();
@@ -36,15 +37,16 @@ export function publicHome() {
 }
 export async function apiFetch(path: string, options: RequestInit = {}) {
   const expected = owner;
-  const { data } = await client.auth.getSession();
-  if (!expected || data.session?.user.id !== expected || owner !== expected)
+  const session = activeSession;
+  if (!expected || session?.user.id !== expected)
     throw Error("Session changed");
   const headers = new Headers(options.headers);
   if(options.method && options.method!=="GET" && !headers.has("X-Request-ID"))headers.set("X-Request-ID",crypto.randomUUID());
-  headers.set("Authorization", "Bearer " + data.session.access_token);
+  headers.set("Authorization", "Bearer " + session.access_token);
+  const reviewStorage = path.startsWith("/api/explore/review") && !path.endsWith("/analyze");
   return fetch(base + path.replace(/^\//, ""), {
     ...options,
-    signal: options.signal ?? AbortSignal.timeout(75000),
+    signal: options.signal ?? AbortSignal.timeout(reviewStorage ? 20000 : 75000),
     headers,
     cache: "no-store",
   });
@@ -287,10 +289,13 @@ export function AuthGate({ children }: { children: ReactNode }) {
       sub: { unsubscribe(): void } | undefined,
       seq = 0;
     async function update(session: Session | null, event: string) {
+      if (!live) return;
+      activeSession = session;
       if (owner && session?.user.id === owner) return;
       const current = ++seq;
       if (!live) return;
       if (owner && session?.user.id !== owner) {
+        sessionStorage.removeItem(ownerKey("review-library-v1"));
         owner = "";
         savedState = null;
         revision = 0;
@@ -339,7 +344,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
           navigation.current(target());
       } catch {
         if (live) {
-          owner = "";
+          sessionStorage.removeItem(ownerKey("review-library-v1"));
+        owner = "";
           savedState = null;
           setSigned(false);
           setError("error");
@@ -511,7 +517,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
                       scope: "local",
                     });
                     if (result.error) throw result.error;
-                    owner = "";
+                    sessionStorage.removeItem(ownerKey("review-library-v1"));
+        owner = "";
                     savedState = null;
                     location.replace(base);
                   } catch {

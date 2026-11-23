@@ -11,7 +11,13 @@ export interface SavedProject extends Project {
 }
 
 let clearing = false;
-const writes = new Set<Promise<number>>();
+const writes = new Set<Promise<unknown>>();
+export function trackProjectWrite<T>(write: Promise<T>): Promise<T> {
+  writes.add(write);
+  const finish = () => { writes.delete(write); };
+  write.then(finish, finish);
+  return write;
+}
 export async function waitProjectWrites() { await Promise.all(Array.from(writes)) }
 export function saveProject(project: SavedProject): Promise<number> {
   if (clearing) return Promise.reject(Error("Deleting workspace"));
@@ -20,12 +26,7 @@ export function saveProject(project: SavedProject): Promise<number> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(project),
   }).then(({ revision }) => revision as number);
-  writes.add(write);
-  write.then(
-    () => writes.delete(write),
-    () => writes.delete(write),
-  );
-  return write;
+  return trackProjectWrite(write);
 }
 export const readProject = (id: string): Promise<SavedProject> =>
   cloudJson("/api/workspaces/" + encodeURIComponent(id));
@@ -40,6 +41,7 @@ export async function eraseProjects() {
     await Promise.allSettled(Array.from(writes));
     const result = await cloudJson("/api/my-data", { method: "DELETE" });
     if ((await listProjects()).length) throw Error("Deletion incomplete");
+    (await import("../explore/Reviews")).clearReviewLibrary();
     sessionStorage.removeItem(ownerKey("active"));
     clearing = false;
     return result as { deletedProjects: number; deletedDocuments: number };

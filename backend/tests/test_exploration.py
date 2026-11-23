@@ -29,9 +29,25 @@ class ExplorationTests(TestCase):
         with self.assertRaises(HTTPException):
             exploration.scores([0])
 
+    def test_profile_coverage_and_ties(self):
+        cases = [([1]*12, 0), ([5]*12, 1), ([3]*12, 8)]
+        for axis in range(4):
+            for side in (0, 1):
+                answers = [3]*12
+                answers[axis::4] = [5, 1, 5] if side else [1, 5, 1]
+                cases.append((answers, axis*2+side))
+        with patch.object(exploration, "record", return_value=(0, {})), patch.object(
+            exploration, "write", side_effect=lambda kind, key, revision, data: data
+        ):
+            for answers, profile in cases:
+                result = exploration.finish(uuid4(), exploration.Quiz(answers=answers))
+                self.assertEqual(result["profile"], profile)
+                self.assertEqual(len(set(result["paths"])), len(result["paths"]))
+                self.assertEqual(result, exploration.finish(uuid4(), exploration.Quiz(answers=answers)))
+
     def test_source_text_filters_and_safe_links(self):
         job = positions.normalize("crypto", self.raw)
-        self.assertEqual(job["apply"], self.url)
+        self.assertEqual(job["apply"], "")
         self.assertIn("Analyze data", job["jd"])
         self.assertNotIn("<li>", job["jd"])
         self.assertTrue(positions.eligible(job, "hk", "intern", "product", "crypto"))

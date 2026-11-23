@@ -139,3 +139,115 @@
     overflow: auto;
   }
 }
+.quiz-footer {display:flex;align-items:center;justify-content:flex-end;gap:16px;margin:18px 0;color:#516176}
+.explore .quiz-submit,.explore .quiz-submit:enabled:hover {background:#203958;color:white;border-color:#203958;font-weight:600;padding:10px 24px}
+.explore .quiz-submit:disabled {background:#738093;border-color:#738093;opacity:.55}
+.explore .quiz-question button[aria-pressed=true] {background:#e3edf8;border-color:#577ea7;color:#193c61}
+.career-report section,.report-history{margin-top:24px}
+.explore .profile-hero{background:#edf2f7;border-left:4px solid #455e7b;padding:20px 24px}
+.explore .profile-hero h2{font:600 27px Georgia,serif;margin:7px 0}
+.profile-hero button{float:right}.profile-hero span{display:inline-block;background:#fff;color:#374e68;border-radius:12px;padding:3px 10px;margin:3px 5px 0 0;font-size:12px}
+.career-cards,.preference-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,185px),1fr))}
+.preference-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.explore .career-cards article,.explore .preference-grid article{margin:0;min-width:0}
+.career-cards article{display:flex;flex-direction:column;align-items:flex-start}.career-cards article button{margin-top:auto}
+.pole-labels{display:flex;justify-content:space-between;gap:8px}
+.preference-track{position:relative;margin:12px 6px;height:6px;border-radius:4px;background:#dbe3ed}
+.preference-track:before{content:"";position:absolute;left:50%;top:-3px;height:12px;border-left:1px solid #8796a7}
+.preference-track i{position:absolute;top:50%;transform:translate(-50%,-50%);background:#385777;border:2px solid white;box-shadow:0 0 0 1px #385777;border-radius:50%;width:12px;height:12px}
+.report-history{padding:12px 0;border-top:1px solid #d7dfe8}.explore .history-entry button:first-child{border:0;color:#536071}
+@media(max-width:600px){.career-cards,.preference-grid{grid-template-columns:1fr}}
+.explore .review-date{padding:0;background:white;position:relative}
+.review-date summary{border:1px solid #bdcada;border-radius:6px;padding:7px 10px;list-style:none}
+.calendar-panel{position:absolute;right:0;top:100%;z-index:4;width:min(266px,85vw);padding:12px;background:white;border:1px solid #cbd5df;border-radius:8px;box-shadow:0 5px 18px #20354b22}
+.calendar-panel header{display:flex;align-items:center;justify-content:space-between}.calendar-panel header strong{order:1}.calendar-panel header button:last-of-type{order:2}
+.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);text-align:center}.explore .calendar-grid button{margin:0;border:0;padding:5px}.calendar-grid button[aria-pressed=true]{background:#234767;color:white}
+.working-dots{display:inline-block;vertical-align:bottom;overflow:hidden;animation:review-dots 1.2s steps(4,end) infinite;width:1em}
+@keyframes review-dots{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0)}}
+@media(prefers-reduced-motion:reduce){.working-dots{animation:none}}
+.explore .quiz-question > small {display:table}
+.explore .quiz-question > h2 {margin-block:6px 16px}
+.explore .quiz-question .choices{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));max-width:510px;gap:2px}
+.explore .quiz-question .choices button{display:flex;flex-direction:column;align-items:center;gap:6px;justify-content:flex-start;margin:0;padding:0 1px;min-height:0;white-space:normal;background:transparent;border:0;color:#45546b;font-size:13px}
+.choices button:before{content:"";box-sizing:border-box;width:13px;height:13px;border-radius:50%;border:1px solid #99aabc;background:white}
+.choices button:hover:before,.choices button:focus-visible:before{border-color:#365778}.choices button[aria-pressed=true]:before{background:#355573;border-color:#355573;box-shadow:inset 0 0 0 2px white}
+.preference-track{background:linear-gradient(to right,#969bc9 50%,#70ada4 50%)}
+.review-state{display:block;margin:8px 0}.explore .review-delete{color:#963f46}.explore .review-analyze{background:#28466b;color:white}
+.interview-report{margin:18px 0}.interview-report>summary{font-size:16px;color:#344b65;padding:8px 0}
+.interview-question{border:1px solid #d6dfe7;background:white;border-radius:10px;margin:12px 0;overflow:hidden}
+.interview-question>summary{padding:16px 20px;list-style:none}.interview-question>summary:after{content:"＋";float:right;margin-top:-22px}.interview-question[open]>summary:after{content:"−"}
+.interview-question summary strong{display:block;font-size:18px;margin-top:5px;padding-right:24px}
+.question-body{padding:0 20px 20px;line-height:1.7}.question-body section,.actual-answer{margin-top:16px}.question-body p{max-width:80ch}
+.actual-answer,.suggested-answer{padding:12px 16px;border-radius:7px;background:#f3f5f7}.suggested-answer{background:#edf4f8;border-left:3px solid #527693}
+.next-answer{border-left:3px solid #c4a26c;padding-left:12px}.question-body h4,.interview-summary h4{font-weight:650;color:#233d59}
+.interview-summary{margin:22px 0}.interview-summary>div{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.interview-summary section{background:white;border:1px solid #d6dfe7;border-radius:8px;padding:16px;line-height:1.7}.interview-summary ul{padding-left:1.25em;list-style:disc}
+@media(max-width:640px){.interview-summary>div{grid-template-columns:1fr}}
+
+.discovery .path-actions,.discovery .job footer {display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.discovery .path-actions {margin:12px 0}
+.discovery .recommended-paths {gap: 8px}
+.discovery .recommended-paths details {
+  min-width: 0;
+  min-height: 39.5px;
+  padding: 8.75px 14px;
+  background: #f4f6f8;
+}
+.discovery .recommended-paths details > :is(p, blockquote) {color: #526174}
+.discovery .recommended-paths details > p > strong {color: #37465a}
+.discovery .recommended-paths summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #192a40;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 22px;
+  overflow-wrap: anywhere;
+}
+.discovery .recommended-paths summary::-webkit-details-marker {display: none}
+.discovery .recommended-paths summary::before {
+  content: "";
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border: solid #69798a;
+  border-width: 1.5px 1.5px 0 0;
+  transform: rotate(45deg);
+}
+.discovery .recommended-paths details[open] > summary::before {transform: rotate(135deg)}
+.discovery .path-actions .secondary {
+  height: 27px;
+  padding: 0 8px;
+  border: 1px solid #d6dde4;
+  background: transparent;
+  color: #556578;
+  font-size: 12px;
+}
+.discovery .primary,.discovery .primary:enabled:hover {background:#192c45;color:white;border-color:#192c45;padding:8px 14px;font-weight:600}
+.discovery .primary:enabled:hover {background:#304965}
+.discovery .primary:disabled {background:#e5eaf0;color:#58687a;border-color:#e0e5eb;opacity:1}
+.discovery .secondary {color:#29394d;border-color:#cbd3dc}
+.discovery .text-link,.discovery .external {background:transparent;border:0;padding:4px 2px}
+.discovery .external:hover,.discovery .text-link:hover {text-decoration:underline}
+.discovery .filter-chip {border-radius:999px;background:#f1f4f7;color:#45566b;padding:3px 10px}
+.discovery .filter-chip[aria-pressed=true] {background:#dce9f7;border-color:#7595b5;color:#193b60}
+.discovery :is(button,a):focus-visible {outline:2px solid #426e99;outline-offset:2px}
+.discovery .quiz-option {border-top:1px solid #e4e8ec;padding-top:10px}
+.discovery .quiz-option label,.discovery .muted,.discovery .job p {color:#586a80}
+.discovery .quiz-option label {font-size:13px}
+.discovery .job {display:flex;flex-direction:column;min-width:0;padding:12px 14px}
+.discovery .job h3 {font-size:15px;line-height:1.4}
+.discovery .job p {margin:0 0 6px}
+.discovery .job footer {margin-top:auto;padding-top:10px;gap:4px 7px}
+.discovery .job footer>* {margin:0}
+.discovery .match-action {background:#eaf0f6;color:#244766;border-color:transparent}
+
+.discovery .jobs-pagination {display:inline-flex;align-items:center;gap:6px;margin:0 0 6px 12px}
+.discovery .jobs-pagination span {min-width:9ch;text-align:center;font-variant-numeric:tabular-nums}
+.discovery .jobs-pagination button {margin:0}
+
+.review-filters {display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) auto;align-items:end;gap:10px;margin:10px 0}
+.explore .review-filters label {margin:0}
+.explore .review-query {background:#285b94;color:white;border-color:#285b94;margin:0;padding:7px 18px}
+.explore .review-query:enabled:hover {background:#204c7d;color:white}
+@media(max-width:900px){.review-filters {grid-template-columns:repeat(2,minmax(0,1fr))}}

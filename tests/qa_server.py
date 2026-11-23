@@ -88,7 +88,7 @@ class ModelTransport(httpx.AsyncBaseTransport):
             out={"paths":[dict(name=x,category=k,reason="Practice from the resume",evidence=data["resume"].splitlines()[0],transfer="Coordination",gap="Quantify results") for x,k in [("Product operations","operations"),("Marketing","marketing"),("Analytics","analytics")]]}
         elif 'For each question in order' in system:
             data=json.loads(user)
-            out=dict(items=[dict(intent="Coordination",evaluation="Specific actions",improve="Explain your role",example="I would first clarify the scope.") for _ in data["review"]["questions"]],strengths="Clear examples",priorities=["Scope","Evidence","Results"],practice="Behavioral questions",checklist="Rehearse once")
+            out=dict(items=[dict(question_id=q["question_id"],question_type="Behavioral",intent="Coordination",evaluation="Specific actions",improve="Explain your role",example="I would first clarify the scope.") for q in data["review"]["questions"]],strengths="Clear examples",priorities=["Scope","Evidence","Results"],practice="Behavioral questions",checklist="Rehearse once")
         else:out={'ok':True}
         if payload.get('task') and os.environ.get('QA_NULL_CITATIONS')=='1':out['citations']=None
         return httpx.Response(200,json={'choices':[{'finish_reason':'stop','message':{'content':json.dumps(out)}}], 'usage':{'total_tokens':10}})

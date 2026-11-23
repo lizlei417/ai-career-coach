@@ -86,3 +86,9 @@ dialog::backdrop { background: rgb(12 22 36 / .6); }
 .pdf-reader[open] { display:flex; flex-direction:column; width:96vw; height:94dvh; max-width:98vw; max-height:98dvh; padding:0; border:0; border-radius:8px; }
 .pdf-reader iframe { flex:1; width:100%; min-height:0; border:0; background:#505359; }
 @media(max-width:800px) { .workspace .project-list { margin: 0 12px 8px; } }
+
+.overview-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 106px), 1fr));
+  gap: 8px;
+}
