@@ -1,0 +1,67 @@
+{
+  "v1": {
+    "all_assets_byte_equal": true,
+    "assets": [
+      {
+        "asset": "/v1/assets/index-D9WKGcKd.js",
+        "sha256": "02e3faad788450234781fe27abb17b925bc19819584dfa4abf8053b30d91a664"
+      },
+      {
+        "asset": "/v1/assets/index-C6fWyv4Q.css",
+        "sha256": "529c2701a2854f35368035e4408721cb6c20b1a4b595aba61349d6f318e614c8"
+      }
+    ]
+  },
+  "v2": {
+    "all_assets_byte_equal": true,
+    "assets": [
+      {
+        "asset": "/v2/assets/index-D9ZCrfbJ.js",
+        "sha256": "8f8e87cbe818cb1fdd974bab08a426b0118cf768eafa9ef74c8f628ee0c2f710"
+      },
+      {
+        "asset": "/v2/assets/index-PkNAcd7t.css",
+        "sha256": "05192bfb501f34317e838f8222721cd2df55aec76b6038f33e2b5da0fbef69ed"
+      }
+    ]
+  },
+  "v3": {
+    "all_assets_byte_equal": true,
+    "assets": [
+      {
+        "asset": "/v3/assets/index-B_Of24n5.js",
+        "sha256": "2e0e642d7d0953e568af28e4753474fb3a4708e416fbad9eeaf057384df3a2f9"
+      },
+      {
+        "asset": "/v3/assets/index-Dwh4z6Dh.css",
+        "sha256": "778edebfddefc0368621b7e84f9560e10f2374ada9d6ebcc89764bfe9af1fe47"
+      }
+    ]
+  },
+  "v4": {
+    "all_assets_byte_equal": true,
+    "assets": [
+      {
+        "asset": "/v4/assets/index-BfQ4QxyA.js",
+        "sha256": "4627eb8559cf88a0c0e6f18dbe6c9b66071da4fe59b7fa688447119ab044b15a"
+      },
+      {
+        "asset": "/v4/assets/index-Cz9n1ojK.css",
+        "sha256": "b835dadb06c4c82f86c31cf5928863b42cd68196e2cad2c5974e559526b23947"
+      }
+    ]
+  },
+  "claude": {
+    "all_assets_byte_equal": true,
+    "assets": [
+      {
+        "asset": "/claude/assets/index-CjAwPgQz.js",
+        "sha256": "b07d97052a4f600d3db27a8b08057623397ec7c9c748ba1b9acf352644dfdc6e"
+      },
+      {
+        "asset": "/claude/assets/index-w2h40Rxd.css",
+        "sha256": "c62b20fbb059cede2791a780fd343f4f017ed97052db010e8c6217bcf9bbbf2f"
+      }
+    ]
+  }
+}

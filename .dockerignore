@@ -7,3 +7,4 @@
 **/*.pdf
 **/*.log
 tests
+**/tests/evidence

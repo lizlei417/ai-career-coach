@@ -1,0 +1,52 @@
+{
+  "v1": {
+    "supabase_two_user_state_isolation": true,
+    "persistence_readback": true,
+    "private_pdf_byte_equality": true,
+    "cross_user_pdf_denied": true,
+    "cross_version_pdf_denied": true,
+    "created_pdf_cleanup": true,
+    "real_deepseek_probe": true,
+    "qa_account_quota_used": 1
+  },
+  "v2": {
+    "supabase_two_user_state_isolation": true,
+    "persistence_readback": true,
+    "private_pdf_byte_equality": true,
+    "cross_user_pdf_denied": true,
+    "cross_version_pdf_denied": true,
+    "created_pdf_cleanup": true,
+    "real_deepseek_probe": true,
+    "qa_account_quota_used": 2
+  },
+  "v3": {
+    "supabase_two_user_state_isolation": true,
+    "persistence_readback": true,
+    "private_pdf_byte_equality": true,
+    "cross_user_pdf_denied": true,
+    "cross_version_pdf_denied": true,
+    "created_pdf_cleanup": true,
+    "real_deepseek_probe": true,
+    "qa_account_quota_used": 3
+  },
+  "v4": {
+    "supabase_two_user_state_isolation": true,
+    "persistence_readback": true,
+    "private_pdf_byte_equality": true,
+    "cross_user_pdf_denied": true,
+    "cross_version_pdf_denied": true,
+    "created_pdf_cleanup": true,
+    "real_deepseek_probe": true,
+    "qa_account_quota_used": 4
+  },
+  "claude": {
+    "supabase_two_user_state_isolation": true,
+    "persistence_readback": true,
+    "private_pdf_byte_equality": true,
+    "cross_user_pdf_denied": true,
+    "cross_version_pdf_denied": true,
+    "created_pdf_cleanup": true,
+    "real_deepseek_probe": true,
+    "qa_account_quota_used": 5
+  }
+}

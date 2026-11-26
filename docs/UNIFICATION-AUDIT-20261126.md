@@ -1,5 +1,7 @@
 # 版本同步与仓库整合验收 — 2026-11-26（香港）
 
+> 本文记录第一阶段检查时的状态。后续生产验收与发布以 [最终验收记录](FINAL-ACCEPTANCE-20261126.md) 为准。
+
 ## 结论与审批边界
 
 统一工作树 `unified-career-coach`，独立分支 `codex/unified-repository-20261126`，基于 GitHub V4 发布分支 `release/v4-on-existing-render-20261124` 的 `9bc2fcd`。没有修改生产分支、服务、数据库或原工作树。GitHub main 是历史演示版，不是功能最完整版本。Claude 原仓库没有被删除或归档。

@@ -1,0 +1,24 @@
+{
+  "mode": "REAL DeepSeek, synthetic Auth/Storage, real local PostgreSQL",
+  "calls": [
+    {
+      "path": "api/materials/prepare",
+      "status": 200
+    },
+    {
+      "path": "api/match",
+      "status": 200
+    },
+    {
+      "path": "api/resume/optimize",
+      "status": 200
+    }
+  ],
+  "provider_attempts": 2,
+  "requirements": 7,
+  "suggestions": 2,
+  "adopted": 1,
+  "refresh_restored": true,
+  "pdf_docx_complete": true,
+  "page_errors": []
+}

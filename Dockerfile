@@ -1,11 +1,15 @@
-FROM node:22-bookworm-slim AS build
+# Frontend output is architecture-independent; build tools run natively even
+# when verifying a different target architecture (esbuild cannot run under QEMU).
+FROM --platform=$BUILDPLATFORM node:22-bookworm-slim AS build
 WORKDIR /build
 COPY versions/v1 /build/v1
 COPY versions/v2 /build/v2
 COPY versions/v3 /build/v3
 COPY versions/claude /build/claude
 COPY . /build/v4
-RUN for app in v1 v2 v3 v4 claude; do cd /build/$app/frontend && npm ci && npm run build -- --base=/$app/; done
+RUN set -eu; for app in v1 v2 v3 v4 claude; do \
+    cd /build/$app/frontend; npm ci; npm run build -- --base=/$app/; \
+    done
 
 FROM python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 COACH_APPS=/srv/apps

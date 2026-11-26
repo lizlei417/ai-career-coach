@@ -1,0 +1,27 @@
+{
+  "v1": {
+    "/": 200,
+    "/healthz": 200,
+    "/api/workspaces": 401
+  },
+  "v2": {
+    "/": 200,
+    "/healthz": 200,
+    "/api/workspaces": 401
+  },
+  "v3": {
+    "/": 200,
+    "/healthz": 200,
+    "/api/workspaces": 401
+  },
+  "v4": {
+    "/": 200,
+    "/healthz": 200,
+    "/api/workspaces": 401
+  },
+  "claude": {
+    "/": 200,
+    "/healthz": 200,
+    "/api/workspaces": 401
+  }
+}

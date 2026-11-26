@@ -1,0 +1,7 @@
+{
+  "architecture": "amd64",
+  "non_root_user": "coach",
+  "release_image_id": "sha256:9159e54a5305309dfe6f7420b0e3473405bad7cd4c197aa6b0f7709d0d80204e",
+  "runtime_filesystem_and_config_equal_to_tested_image": true,
+  "node_npm_vite_esbuild_absent": true
+}

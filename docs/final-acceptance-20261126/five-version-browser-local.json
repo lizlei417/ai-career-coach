@@ -1,0 +1,42 @@
+{
+  "v1": {
+    "real_supabase_login": true,
+    "materials_save_reload": true,
+    "feature_navigation": true,
+    "language_switch": true,
+    "mobile_render": true,
+    "page_errors": []
+  },
+  "v2": {
+    "real_supabase_login": true,
+    "materials_save_reload": true,
+    "feature_navigation": true,
+    "language_switch": true,
+    "mobile_render": true,
+    "page_errors": []
+  },
+  "v3": {
+    "real_supabase_login": true,
+    "materials_save_reload": true,
+    "feature_navigation": true,
+    "language_switch": true,
+    "mobile_render": true,
+    "page_errors": []
+  },
+  "v4": {
+    "real_supabase_login": true,
+    "materials_save_reload": true,
+    "feature_navigation": true,
+    "language_switch": true,
+    "mobile_render": true,
+    "page_errors": []
+  },
+  "claude": {
+    "real_supabase_login": true,
+    "materials_save_reload": true,
+    "feature_navigation": true,
+    "language_switch": true,
+    "mobile_render": true,
+    "page_errors": []
+  }
+}

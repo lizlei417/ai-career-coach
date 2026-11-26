@@ -1,0 +1,7 @@
+PASS e2e_races.py
+PASS api_integration.py
+PASS e2e_audit.py
+PASS m3_interview_e2e.py
+PASS profile_recovery_e2e.py
+PASS resume_documents_e2e.py
+PASS backend unit/integration tests; all mock E2E flows. Real API is a separate explicit run.

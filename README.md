@@ -1,8 +1,8 @@
 # IS5542 AI Career Coach — 统一项目
 
-IS5542 课程 AI 职业辅导项目，保留 Codex 与 Claude 两条实现路线。统一仓库：https://github.com/lizlei417/ai-career-coach-codex 。当前主力是根目录 V4；`main` 目前仍是早期展示版，**尚未合并此次整合**。
+IS5542 课程 AI 职业辅导项目，保留 Codex 与 Claude 两条实现路线。统一仓库：https://github.com/lizlei417/ai-career-coach-codex 。当前主力是根目录 V4；正式统一代码源为 `main`，包含 V1/V2/V3/V4/Claude 完整源码及保留历史。
 
-整合分支：`codex/unified-repository-20261126`。请在此分支或其后续评审分支继续开发，正式合并、部署须经项目负责人决定。完整检查见 [版本验收报告](docs/UNIFICATION-AUDIT-20261126.md)。原 README 保存在 [历史说明](docs/README-before-unification.md)。
+整合验收分支：`codex/unified-repository-20261126`。后续请从最新 `origin/main` 创建 `codex/` 功能分支，优先开发根目录 V4。完整检查见 [最终验收记录](docs/FINAL-ACCEPTANCE-20261126.md) 和 [初始盘点](docs/UNIFICATION-AUDIT-20261126.md)。原 README 保存在 [历史说明](docs/README-before-unification.md)。
 
 ## 版本与结构
 
@@ -63,10 +63,23 @@ DeepSeek 和 Supabase secret/database 凭据只能放服务器。浏览器只接
 
 继续使用现有服务 `ai-career-coach-three-versions`、原域名和环境变量。Dockerfile 从当前 checkout 的版本目录构建，URL、Python 模块和数据命名空间维持独立。网关根路径仍跳转 `/v3/`，避免此次整合改变既有入口。`COACH_V4_ROOT` 仅为本地共享网关提供源码根路径覆盖，容器默认不变。
 
-本次不创建服务、不改部署分支、不触发部署。根 `render.yaml` 是历史 V4 预览服务配置，**不要直接 Apply Blueprint**，以免建立额外服务；最终部署应在现有服务中，经批准选择整合 commit。先验证 Docker 构建，再核对现有环境、回滚 commit 和公开入口。Docker 引擎在本机不可用，因此本次不声称完成容器镜像测试。
+2026-11-26 用户已授权在验收通过后合并 main 并部署现有服务。正式来源是 main，保留手动部署。根 `render.yaml` 是历史 V4 预览服务配置，**不要直接 Apply Blueprint**，以免建立额外服务；最终部署应在现有服务中，经批准选择整合 commit。先验证 Docker 构建，再核对现有环境、回滚 commit 和公开入口。已在独立 Lima Linux Docker 环境完成 arm64 与 amd64 镜像构建及运行验收。前端构建使用 BUILDPLATFORM，最终运行层使用目标架构，未将 Node 或开发服务器带入生产镜像。
 
 ## 功能与限制
 
 V4 已有五模块导航、职业探索及岗位查看、八类测评结果与平衡结果、按得分分割的双色进度条、面试回顾、页面动画及减少动画设置、工作台/项目库、简历编辑/保存/PDF-DOCX 预览、中英文切换、Supabase 登录与持久化、DeepSeek 服务端接入。源码、构建和离线测试证据不等于所有生产业务流程已重新验收。
 
-现有依赖审计告警、Docker/完整浏览器回归、真实 Supabase 双用户隔离与真实 DeepSeek 全流程复验仍需跟进；不要自动升级依赖或重跑生产数据迁移。原有详细功能文档在各版本 README 和 deploy 文档中，历史验收记录均须按记录日期理解。
+已执行 V4 九组、V3 六组浏览器回归，以及五版真实登录、材料持久化、导航及语言测试；已通过真实 Supabase 双用户/Storage 隔离和 DeepSeek 流程。Vite/esbuild 告警涉及开发服务器，生产 Python 镜像不包含这些工具；仍须谨慎使用本地开发服务器，不自动升级依赖或重跑生产迁移。原有详细功能文档在各版本 README 和 deploy 文档中，历史验收记录均须按记录日期理解。
+
+
+## 验收复现与部署边界
+
+完整命令、测试范围和回滚目标见最终验收记录。五版浏览器验收脚本：
+
+```sh
+QA_ACCOUNTS_FILE=/PRIVATE/PATH/dedicated-qa-accounts.json python tests/unified_browser.py http://127.0.0.1:8114
+```
+
+只接受本次格式的两个专用 `is5542-unified-qa-...@example.test` 测试账户，写入虚构材料，不调用模型。账户凭据、trace 和用户文件不得提交；证据在 gitignored tests/evidence/。真实模型脚本 tests/real_e2e.py 使用一次性本地数据库与模拟 Auth/Storage，明确调用真实 DeepSeek 三次，不自动重试。
+
+**所有版本部署只使用仓库根 Dockerfile**。versions/v2、versions/v3 内原 Dockerfile/render.yaml 与旧 README 为原始提交历史快照，不是当前构建入口；其中外部 clone URL 不会被统一 Docker 构建执行。一次普通 git clone 即可获得所有源代码，构建与运行不再访问原 Claude 独立仓库。
