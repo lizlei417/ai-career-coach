@@ -98,3 +98,13 @@ deploy/                       网关、SQL、独立本地入口
 Codex 目前已有一个 IS5542 Project，路径是上层无提交容器；此次未创建第二个项目。建议后续将统一工作树设为该项目工作目录；现有工具未提供修改已有 Project 路径的能力。本地顶层导航 AGENTS 将指向统一工作树，避免后续 Agent 误改历史工作树。
 
 差异格式检查发现历史快照中 6 个末尾空行和字体 OFL 许可证 1 处尾随空格；为保留原文件字节不清理，非新业务代码问题。
+
+## 远端交付复核
+
+整合提交 `616cc623f40c95aeb3f1ed5fca27fafbbce049df` 已推送到统一仓库的 `codex/unified-repository-20261126`，其父节点分别是 Codex `9bc2fcd` 和 Claude `4ef8832`。19 个 archive/* 标签已推送。重新从 GitHub 一次 clone 整合分支成功，git fsck --full 通过，Claude 历史祖先关系成立。逐文件比对：Claude、V3 与原 commit 全部 tracked 文件字节一致；V1/V2 只有已备份并测试通过的 backend/tests/test_deepseek.py 差异。
+
+GitHub main 仍是 `5494181`，生产候选发布分支仍是 `9bc2fcd`。此后的文档补充提交不改变应用源码。
+
+```sh
+git clone --branch codex/unified-repository-20261126 https://github.com/lizlei417/ai-career-coach-codex.git
+```

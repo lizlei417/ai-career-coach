@@ -1,0 +1,10 @@
+{
+  "v1": [
+    "backend/tests/test_deepseek.py"
+  ],
+  "v2": [
+    "backend/tests/test_deepseek.py"
+  ],
+  "v3": [],
+  "claude": []
+}
