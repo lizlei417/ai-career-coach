@@ -1,0 +1,28 @@
+{
+  "all_advertised_refs": [
+    {
+      "source_ref": "refs/heads/codex/claude-shared-quota-dialogs",
+      "sha": "4ef883244d9f11af0549b44e7fb341955a9151cc",
+      "preserved_tag": "archive/claude/codex/claude-shared-quota-dialogs"
+    },
+    {
+      "source_ref": "refs/heads/feature/claude-auth-deploy",
+      "sha": "d99e2d6d5bd987856d20bbe7ad681f7d7fb9db1d",
+      "preserved_tag": "archive/claude/feature/claude-auth-deploy"
+    },
+    {
+      "source_ref": "refs/heads/feature/deepseek-api-integration",
+      "sha": "fdd15546a2a4fbc81c233fdce38b7f549700becc",
+      "preserved_tag": "archive/claude/feature/deepseek-api-integration"
+    },
+    {
+      "source_ref": "refs/heads/main",
+      "sha": "f971cea78d19b8abb893d532c680f345e1340eb2",
+      "preserved_tag": "archive/claude/main"
+    }
+  ],
+  "reachable_original_objects": 175,
+  "missing_objects": [],
+  "claude_source_byte_differences": [],
+  "source_history_preserved_in_remote_fresh_clone": true
+}

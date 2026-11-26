@@ -1,6 +1,6 @@
 # AI Career Coach Agent instructions
 
-- Unified repository: lizlei417/ai-career-coach-codex. Read README.md, docs/UNIFICATION-AUDIT-20261126.md and versions/source-manifest.json first.
+- Unified repository: lizlei417/ai-career-coach. Read README.md, docs/UNIFICATION-AUDIT-20261126.md and versions/source-manifest.json first.
 - Active implementation is V4 at root frontend/ and backend/. Use a new codex/ branch from the latest origin/main. codex/unified-repository-20261126 records the accepted integration; main is the canonical complete source after this release.
 - versions/v1, versions/v2, versions/v3 and versions/claude are independent source snapshots. Claude remains Python/FastAPI with its own frontend/dependencies. Do not replace one implementation with another, convert stacks, or restructure root V4 without a specific request.
 - archives/ are historical local source snapshots, not production inputs. Original branches are retained under archive/codex/* and archive/claude/* tags; never delete or rewrite them.
@@ -14,3 +14,7 @@
 - Record source commits, functional differences, exact test results and any unverified claims. Commit dates or the newest SHA alone do not establish functional completeness.
 
 - Only the ROOT Dockerfile is an active deployment entry point. Nested legacy Dockerfiles/render.yaml are preserved snapshots; do not execute them or apply their Blueprints. No active build/runtime path should clone the old Claude repository.
+
+- Canonical repository after rename: https://github.com/lizlei417/ai-career-coach. Keep origin on this URL. The existing IS5542 Project, chat history and unified-career-coach directory stay in place.
+- Read docs/REPOSITORY-RENAME-20261126.md for current repository identity and old-Claude deletion assessment. Use release/unified-20261126 (30e7ffb) or later unified sources for rollback/rebuild; do not rebuild the pre-unification clone-based Dockerfiles.
+- The original Claude repository must NOT be deleted until the user explicitly gives final deletion confirmation. Current-source independence does not preserve its old GitHub Pages address or GitHub Actions history.

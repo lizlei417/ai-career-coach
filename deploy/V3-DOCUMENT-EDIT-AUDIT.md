@@ -69,7 +69,7 @@ QA_DOCUMENTS_MOCK=1 QA_DATABASE_URL=postgresql://postgres@127.0.0.1:28547/coacht
 
 2026-11-22 已部署并完成线上真实 Chrome 验收。
 
-- 线上业务代码：[892df67](https://github.com/lizlei417/ai-career-coach-codex/commit/892df67f450ac13538d541fb836eb6a4227d3dc9)。Render 状态为 **Deploy succeeded | Live**，最终构建耗时 1 分 30 秒。
+- 线上业务代码：[892df67](https://github.com/lizlei417/ai-career-coach/commit/892df67f450ac13538d541fb836eb6a4227d3dc9)。Render 状态为 **Deploy succeeded | Live**，最终构建耗时 1 分 30 秒。
 - [V3 验收入口](https://ai-career-coach-three-versions.onrender.com/v3/workspace/resume)，[Render 服务](https://dashboard.render.com/web/srv-dc0k9cm7bikc73b2iqug)。测试使用专用虚构账号，没有修改真实用户项目。
 - 上传原始林知夏 PDF、输入本报告描述的模拟 AI 产品运营 JD，实际 DeepSeek 改写返回 HTTP 200，并采纳一条真实建议；未使用模拟响应或复用结果。
 - 本次线上流程只有 **1 次 AI 请求**，账户已用次数仅增加 1。文件生成、原地编辑、保存、预览、项目切换和顶部导航没有额外模型调用。

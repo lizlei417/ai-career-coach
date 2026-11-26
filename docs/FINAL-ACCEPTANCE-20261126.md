@@ -8,7 +8,7 @@
 
 - 已通过 Render MCP 核实 My Workspace（tea-dc0k7hu1egvs73876u00）。
 - 原服务：ai-career-coach-three-versions，srv-dc0k9cm7bikc73b2iqug，Singapore，Docker Free，无新增服务。
-- 原仓库：https://github.com/lizlei417/ai-career-coach-codex 。原部署分支 codex/v3-career-audit，实际 live commit `9bc2fcda32d830dde654969c1a590c7f9bcc6e31`，deploy ID `dep-dc2an1h7lnhs739qs8cg`。自动部署 Off，Dockerfile ./Dockerfile，context .，health /healthz。
+- 原仓库：https://github.com/lizlei417/ai-career-coach 。原部署分支 codex/v3-career-audit，实际 live commit `9bc2fcda32d830dde654969c1a590c7f9bcc6e31`，deploy ID `dep-dc2an1h7lnhs739qs8cg`。自动部署 Off，Dockerfile ./Dockerfile，context .，health /healthz。
 - 正式来源为同一仓库的 main，保留手动部署和全部既有环境变量。域名仍为 https://ai-career-coach-three-versions.onrender.com 。入口 /v1/、/v2/、/v3/、/v4/、/claude/，根跳转 /v3/ 均保留。
 - 回滚优先使用上述旧 live deploy 的保留 artifact；若超出 Render artifact 保留期，则从 `archive/codex/release/v4-on-existing-render-20261124` 的 9bc2fcd 重建。回滚不回滚数据库；本次无 schema、RLS、Storage namespace 或数据迁移，旧应用与现有数据兼容。确认 Auto-Deploy 仍 Off。
 - 切换只改现有服务的 branch，不提交 environment 修改，不 Apply 旧 render.yaml，不改计划、域名或资源。部署失败时保留旧服务；发布后关键回归失败则回滚旧 artifact，并恢复分支。

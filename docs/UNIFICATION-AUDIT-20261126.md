@@ -108,5 +108,5 @@ Codex 目前已有一个 IS5542 Project，路径是上层无提交容器；此�
 GitHub main 仍是 `5494181`，生产候选发布分支仍是 `9bc2fcd`。此后的文档补充提交不改变应用源码。
 
 ```sh
-git clone --branch codex/unified-repository-20261126 https://github.com/lizlei417/ai-career-coach-codex.git
+git clone --branch codex/unified-repository-20261126 https://github.com/lizlei417/ai-career-coach.git
 ```

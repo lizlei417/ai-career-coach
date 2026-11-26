@@ -1,9 +1,9 @@
 FROM node:22-bookworm-slim AS build
 RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*
 WORKDIR /build
-RUN git clone https://github.com/lizlei417/ai-career-coach-codex.git v1 && cd v1 && git checkout 6c7d74aefea1f4b14f9f44d0e6f14530550b7b84 && rm -rf .git
+RUN git clone https://github.com/lizlei417/ai-career-coach.git v1 && cd v1 && git checkout 6c7d74aefea1f4b14f9f44d0e6f14530550b7b84 && rm -rf .git
 RUN git clone https://github.com/lizlei417/ai-career-coach-claude.git claude && cd claude && git checkout 4ef883244d9f11af0549b44e7fb341955a9151cc && rm -rf .git
-RUN git clone https://github.com/lizlei417/ai-career-coach-codex.git v2 && cd v2 && git checkout b176cccb5121b783d7a163fafc9a7ae30218275c && rm -rf .git
+RUN git clone https://github.com/lizlei417/ai-career-coach.git v2 && cd v2 && git checkout b176cccb5121b783d7a163fafc9a7ae30218275c && rm -rf .git
 COPY . /build/v3
 RUN for app in v1 v2 v3 claude; do cd /build/$app/frontend && npm ci && npm run build -- --base=/$app/; done
 

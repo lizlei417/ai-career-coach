@@ -1,6 +1,8 @@
 # IS5542 AI Career Coach — 统一项目
 
-IS5542 课程 AI 职业辅导项目，保留 Codex 与 Claude 两条实现路线。统一仓库：https://github.com/lizlei417/ai-career-coach-codex 。当前主力是根目录 V4；正式统一代码源为 `main`，包含 V1/V2/V3/V4/Claude 完整源码及保留历史。
+IS5542 — AI Career Coach | Unified Repository (Codex & Claude)
+
+IS5542 课程 AI 职业辅导项目，保留 Codex 与 Claude 两条实现路线。统一仓库：https://github.com/lizlei417/ai-career-coach 。当前主力是根目录 V4；正式统一代码源为 `main`，包含 V1/V2/V3/V4/Claude 完整源码及保留历史。
 
 整合验收分支：`codex/unified-repository-20261126`。后续请从最新 `origin/main` 创建 `codex/` 功能分支，优先开发根目录 V4。完整检查见 [最终验收记录](docs/FINAL-ACCEPTANCE-20261126.md) 和 [初始盘点](docs/UNIFICATION-AUDIT-20261126.md)。原 README 保存在 [历史说明](docs/README-before-unification.md)。
 
@@ -83,3 +85,12 @@ QA_ACCOUNTS_FILE=/PRIVATE/PATH/dedicated-qa-accounts.json python tests/unified_b
 只接受本次格式的两个专用 `is5542-unified-qa-...@example.test` 测试账户，写入虚构材料，不调用模型。账户凭据、trace 和用户文件不得提交；证据在 gitignored tests/evidence/。真实模型脚本 tests/real_e2e.py 使用一次性本地数据库与模拟 Auth/Storage，明确调用真实 DeepSeek 三次，不自动重试。
 
 **所有版本部署只使用仓库根 Dockerfile**。versions/v2、versions/v3 内原 Dockerfile/render.yaml 与旧 README 为原始提交历史快照，不是当前构建入口；其中外部 clone URL 不会被统一 Docker 构建执行。一次普通 git clone 即可获得所有源代码，构建与运行不再访问原 Claude 独立仓库。
+
+
+## 仓库正式名称与删除旧仓库的边界
+
+2026-11-26 统一仓库正式更名为 **lizlei417/ai-career-coach**。Render 服务和域名保持不变；本地唯一开发目录仍为 unified-career-coach，不更名、不迁移现有 IS5542 Project 或历史对话。
+
+最新更名检查见 [仓库更名与旧仓库删除评估](docs/REPOSITORY-RENAME-20261126.md)。今后回滚/重建使用统一发布标签 `release/unified-20261126`（30e7ffb）或后续统一版本；这些版本的根 Dockerfile 不依赖原 Claude 仓库。早于整合的历史 Dockerfiles 仅作原样历史证据，不是当前部署入口或删除旧仓库后的重建方案。
+
+旧 Claude 仓库仍保留其独立 GitHub Pages 演示站；删除该仓库会使该旧演示网址失效，但不会影响 Render 的 /claude/。源码、提交历史与当前部署依赖检查通过不代表 GitHub Actions 运行记录等托管元数据已完整迁移；永久删除须待用户最终确认。

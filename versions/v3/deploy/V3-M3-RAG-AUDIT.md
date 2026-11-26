@@ -4,7 +4,7 @@
 
 ## 1. 接手 Claude 遗留代码
 
-入口工作目录的外层 Git 还是无提交的 main；实际应用仓库在 `auth-v3`，分支 `codex/v3-career-audit`，远程 `lizlei417/ai-career-coach-codex`。接手时 HEAD 为 `bbe78f0`。
+入口工作目录的外层 Git 还是无提交的 main；实际应用仓库在 `auth-v3`，分支 `codex/v3-career-audit`，远程 `lizlei417/ai-career-coach`。接手时 HEAD 为 `bbe78f0`。
 
 开始时没有 reset、clean 或覆盖。先保存指定的非敏感工作区文件到 `../backups/claude-m3-before-integration-20261122.tar.gz`。没有打包 .env、账户凭据或私有配置。
 
