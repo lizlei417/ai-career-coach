@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: career-coach-v3-preview
+    runtime: docker
+    plan: free
+    branch: codex/v3-career-audit
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    autoDeployTrigger: "off"
+    envVars:
+      - key: DEEPSEEK_API_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: ACCOUNT_DAILY_LIMIT
+        value: "10"

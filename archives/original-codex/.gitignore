@@ -1,0 +1,11 @@
+node_modules/
+frontend/dist/
+__pycache__/
+*.pyc
+.venv/
+backend/.env
+backend/data/kb/*
+!backend/data/kb/.gitkeep
+backend/prompts/custom/*.md
+!backend/prompts/custom/README.md
+.DS_Store

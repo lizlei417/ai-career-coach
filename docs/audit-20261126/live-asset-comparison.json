@@ -1,0 +1,58 @@
+{
+  "v1": [
+    {
+      "asset": "/v1/assets/index-D9WKGcKd.js",
+      "local_exists": true,
+      "byte_equal": true,
+      "live_sha256": "02e3faad788450234781fe27abb17b925bc19819584dfa4abf8053b30d91a664"
+    },
+    {
+      "asset": "/v1/assets/index-C6fWyv4Q.css",
+      "local_exists": true,
+      "byte_equal": true,
+      "live_sha256": "529c2701a2854f35368035e4408721cb6c20b1a4b595aba61349d6f318e614c8"
+    }
+  ],
+  "v2": [
+    {
+      "asset": "/v2/assets/index-D9ZCrfbJ.js",
+      "local_exists": true,
+      "byte_equal": true,
+      "live_sha256": "8f8e87cbe818cb1fdd974bab08a426b0118cf768eafa9ef74c8f628ee0c2f710"
+    },
+    {
+      "asset": "/v2/assets/index-PkNAcd7t.css",
+      "local_exists": true,
+      "byte_equal": true,
+      "live_sha256": "05192bfb501f34317e838f8222721cd2df55aec76b6038f33e2b5da0fbef69ed"
+    }
+  ],
+  "v4": [
+    {
+      "asset": "/v4/assets/index-BfQ4QxyA.js",
+      "local_exists": true,
+      "byte_equal": true,
+      "live_sha256": "4627eb8559cf88a0c0e6f18dbe6c9b66071da4fe59b7fa688447119ab044b15a"
+    },
+    {
+      "asset": "/v4/assets/index-Cz9n1ojK.css",
+      "local_exists": true,
+      "byte_equal": true,
+      "live_sha256": "b835dadb06c4c82f86c31cf5928863b42cd68196e2cad2c5974e559526b23947"
+    }
+  ],
+  "claude": [
+    {
+      "asset": "/claude/assets/index-CjAwPgQz.js",
+      "local_exists": true,
+      "byte_equal": true,
+      "live_sha256": "b07d97052a4f600d3db27a8b08057623397ec7c9c748ba1b9acf352644dfdc6e"
+    },
+    {
+      "asset": "/claude/assets/index-w2h40Rxd.css",
+      "local_exists": true,
+      "byte_equal": true,
+      "live_sha256": "c62b20fbb059cede2791a780fd343f4f017ed97052db010e8c6217bcf9bbbf2f"
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+Summarize only completed interview turns. Cite question/attempt numbers in prose where useful. Identify observed answer strengths, priority practice areas and concrete next steps. Do not generalize about personality or hiring prospects; do not invent performance or resume facts. Include relevant guide_ids only if actually used. An unanswered question is not performance evidence.

@@ -1,0 +1,6 @@
+[
+  {"name":"nowcoder","url":"https://www.nowcoder.com/jobs/detail/315366","parser":"nowcoder_html","expected_title":"AI产品运营实习生"},
+  {"name":"greenhouse","url":"https://job-boards.greenhouse.io/globalizationpartners/jobs/8207500003?gh_src=remoteitjobs.app&utm_source=chatgpt.com","parser":"greenhouse_api","expected_title":"Product Management Intern – AI & Analytics"},
+  {"name":"lever","url":"https://jobs.lever.co/spotify/2a55d6c9-c564-443a-be3e-a3851db5a93b","parser":"lever_api","expected_title":"Account Executive - Commercial, Spotify Technology"},
+  {"name":"html","url":"https://www.python.org/jobs/8219/","parser":"html","expected_title":"Senior Image Analysis Software Engineer"}
+]

@@ -1,0 +1,39 @@
+{
+  "/healthz": {
+    "status": 200,
+    "bytes": 57,
+    "assets": []
+  },
+  "/v1/": {
+    "status": 200,
+    "bytes": 862,
+    "assets": [
+      "/v1/assets/index-D9WKGcKd.js",
+      "/v1/assets/index-C6fWyv4Q.css"
+    ]
+  },
+  "/v2/": {
+    "status": 200,
+    "bytes": 862,
+    "assets": [
+      "/v2/assets/index-D9ZCrfbJ.js",
+      "/v2/assets/index-PkNAcd7t.css"
+    ]
+  },
+  "/v4/": {
+    "status": 200,
+    "bytes": 872,
+    "assets": [
+      "/v4/assets/index-BfQ4QxyA.js",
+      "/v4/assets/index-Cz9n1ojK.css"
+    ]
+  },
+  "/claude/": {
+    "status": 200,
+    "bytes": 527,
+    "assets": [
+      "/claude/assets/index-CjAwPgQz.js",
+      "/claude/assets/index-w2h40Rxd.css"
+    ]
+  }
+}

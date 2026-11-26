@@ -10,11 +10,12 @@ from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 
 root = Path(os.environ.get("COACH_APPS", "/srv/apps"))
+v4_root = Path(os.environ.get("COACH_V4_ROOT", str(root / "v4")))
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 
 
 def codex(name):
-    path = root / name / "backend/app/__init__.py"
+    path = (v4_root if name == "v4" else root / name) / "backend/app/__init__.py"
     spec = importlib.util.spec_from_file_location("career_" + name, path)
     package = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = package

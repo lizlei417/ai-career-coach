@@ -1,0 +1,50 @@
+[
+  {
+    "id": "resume",
+    "url": "https://libguides.library.cityu.edu.hk/career/resume",
+    "title": "Resume & CV writing - Careers and Jobs - Research Guides at Run Run Shaw Library, City University of Hong Kong",
+    "retrieved_utc": "2026-11-21T11:36:12.334051+00:00",
+    "raw": "raw/resume.html",
+    "raw_sha256": "f9354bdcfa7c2cc5fdc57b11737692bab07c7a3a2cf881169245a8bd9a9c5ac9",
+    "publisher": "City University of Hong Kong",
+    "unit": "Run Run Shaw Library",
+    "http_status": 200,
+    "chunk_count": 5
+  },
+  {
+    "id": "career",
+    "url": "https://libguides.library.cityu.edu.hk/career/career",
+    "title": "Career Exploration - Careers and Jobs - Research Guides at Run Run Shaw Library, City University of Hong Kong",
+    "retrieved_utc": "2026-11-21T11:36:22.876139+00:00",
+    "raw": "raw/career.html",
+    "raw_sha256": "214334409f4cc4cb77eee796b2cd9c7f5f540437fa2eacb8d7f8a5bb0e6dd78d",
+    "publisher": "City University of Hong Kong",
+    "unit": "Run Run Shaw Library",
+    "http_status": 200,
+    "chunk_count": 7
+  },
+  {
+    "id": "interview",
+    "url": "https://libguides.library.cityu.edu.hk/career/interview",
+    "title": "Interviewing & Presentations - Careers and Jobs - Research Guides at Run Run Shaw Library, City University of Hong Kong",
+    "retrieved_utc": "2026-11-21T11:36:33.422537+00:00",
+    "raw": "raw/interview.html",
+    "raw_sha256": "33aebf4f661714b61099948dba2a2480ad24ab0c428389bca1e4d4fe3da91413",
+    "publisher": "City University of Hong Kong",
+    "unit": "Run Run Shaw Library",
+    "http_status": 200,
+    "chunk_count": 4
+  },
+  {
+    "id": "workshop",
+    "url": "https://www.ee.cityu.edu.hk/home/Career_Preparation_Seminars_and_Workshops.html",
+    "title": "Career Preparation Seminars and Workshops for EE Students",
+    "retrieved_utc": "2026-11-21T11:37:04.129620+00:00",
+    "raw": "raw/workshop.html",
+    "raw_sha256": "c810fa1af1f963c6050102afe4f5ad8bb118e82f72628228e7460b8bfbb1ee3c",
+    "publisher": "City University of Hong Kong",
+    "unit": "Department of Electronic Engineering",
+    "http_status": 200,
+    "chunk_count": 2
+  }
+]

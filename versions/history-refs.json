@@ -1,0 +1,78 @@
+[
+  {
+    "tag": "archive/claude/codex/claude-shared-quota-dialogs",
+    "commit": "4ef883244d9f11af0549b44e7fb341955a9151cc"
+  },
+  {
+    "tag": "archive/claude/feature/claude-auth-deploy",
+    "commit": "d99e2d6d5bd987856d20bbe7ad681f7d7fb9db1d"
+  },
+  {
+    "tag": "archive/claude/feature/deepseek-api-integration",
+    "commit": "fdd15546a2a4fbc81c233fdce38b7f549700becc"
+  },
+  {
+    "tag": "archive/claude/main",
+    "commit": "f971cea78d19b8abb893d532c680f345e1340eb2"
+  },
+  {
+    "tag": "archive/codex/codex/v1-shared-quota-dialogs",
+    "commit": "6c7d74aefea1f4b14f9f44d0e6f14530550b7b84"
+  },
+  {
+    "tag": "archive/codex/codex/v2-projects-shared-quota",
+    "commit": "b176cccb5121b783d7a163fafc9a7ae30218275c"
+  },
+  {
+    "tag": "archive/codex/codex/v3-career-audit",
+    "commit": "9bc2fcda32d830dde654969c1a590c7f9bcc6e31"
+  },
+  {
+    "tag": "archive/codex/codex/v4-career-explorer",
+    "commit": "878f03056a1aa8d1f657f60df341f6f072b0159d"
+  },
+  {
+    "tag": "archive/codex/feat/v4-smooth-feature-navigation",
+    "commit": "3f6cd205fdfaa2f96b8120474404b01f1c9ee6c8"
+  },
+  {
+    "tag": "archive/codex/feature/deepseek-v1",
+    "commit": "4c6a2a26ad8845534b49f443041fcce74cb71a26"
+  },
+  {
+    "tag": "archive/codex/feature/deepseek-v2",
+    "commit": "2272a264ed71104ba5c2a34ad6eb0c48f8e3b841"
+  },
+  {
+    "tag": "archive/codex/feature/pdf-preview-project-management",
+    "commit": "aa882629ef3423aff55831c036d30b60ad1bafd6"
+  },
+  {
+    "tag": "archive/codex/feature/v1-auth-deploy",
+    "commit": "1f67a9829e135ce2eb30def179f4c1c60aa13396"
+  },
+  {
+    "tag": "archive/codex/feature/v2-auth-deploy",
+    "commit": "81cc9eb3262cc6efc4f992dc485f7f0dabe30a8c"
+  },
+  {
+    "tag": "archive/codex/fix/chatgpt-v4-ui-handoff",
+    "commit": "7899e98b766040296230a01edd6c43b93288e889"
+  },
+  {
+    "tag": "archive/codex/fix/v4-assessment-preference-colors",
+    "commit": "e47ebadd59fbc12b4462651bd32a7bc5d18a4a27"
+  },
+  {
+    "tag": "archive/codex/main",
+    "commit": "5494181ba98aef2aba3f5441c47a61f1d305c104"
+  },
+  {
+    "tag": "archive/codex/release/v4-on-existing-render-20261124",
+    "commit": "9bc2fcda32d830dde654969c1a590c7f9bcc6e31"
+  },
+  {
+    "tag": "archive/codex/wip/claude-v4-handoff",
+    "commit": "fda132d3c5824b20aa10da854ef05b22ed3de6ee"
+  }
+]

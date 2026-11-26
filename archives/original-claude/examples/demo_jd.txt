@@ -1,0 +1,12 @@
+SYNTHETIC DEMONSTRATION MATERIAL — NOT A REAL JOB ADVERTISEMENT
+Role: Junior Data Analyst Intern
+Responsibilities:
+- Clean and validate datasets and document assumptions.
+- Prepare dashboards and communicate findings to project teammates.
+Required qualifications:
+- Current university student in Information Systems or a related discipline.
+- Experience using Python to process data.
+- Ability to collaborate and explain analytical methods clearly.
+Preferred qualifications:
+- Familiarity with SQL joins.
+- Experience with Tableau.

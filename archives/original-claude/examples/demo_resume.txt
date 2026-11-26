@@ -1,0 +1,7 @@
+SYNTHETIC DEMONSTRATION MATERIAL — NOT A REAL STUDENT
+Demo Student | University Information Systems student
+Education: Undergraduate studies in Information Systems.
+Course project: Built a Python dashboard with pandas to explore a public dataset. Checked missing values and documented data-cleaning decisions.
+Database coursework: Wrote SQL SELECT queries with joins to combine sample tables and verify query results.
+Team project: Worked with classmates to gather user requirements and presented the dashboard workflow. Contributed implementation notes for the team.
+Skills demonstrated in coursework: Python, pandas, SQL, written documentation and teamwork.

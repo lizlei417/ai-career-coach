@@ -1,0 +1,22 @@
+{
+  "v1": {
+    "commit": "6c7d74aefea1f4b14f9f44d0e6f14530550b7b84",
+    "path": "versions/v1"
+  },
+  "v2": {
+    "commit": "b176cccb5121b783d7a163fafc9a7ae30218275c",
+    "path": "versions/v2"
+  },
+  "v3": {
+    "commit": "9d9bc245cccceaf336c2165e0f896634abd8c811",
+    "path": "versions/v3"
+  },
+  "claude": {
+    "commit": "4ef883244d9f11af0549b44e7fb341955a9151cc",
+    "path": "versions/claude"
+  },
+  "v4": {
+    "commit": "9bc2fcda32d830dde654969c1a590c7f9bcc6e31",
+    "path": "."
+  }
+}
