@@ -93,4 +93,4 @@ QA_ACCOUNTS_FILE=/PRIVATE/PATH/dedicated-qa-accounts.json python tests/unified_b
 
 最新更名检查见 [仓库更名与旧仓库删除评估](docs/REPOSITORY-RENAME-20261126.md)。今后回滚/重建使用统一发布标签 `release/unified-20261126`（30e7ffb）或后续统一版本；这些版本的根 Dockerfile 不依赖原 Claude 仓库。早于整合的历史 Dockerfiles 仅作原样历史证据，不是当前部署入口或删除旧仓库后的重建方案。
 
-旧 Claude 仓库仍保留其独立 GitHub Pages 演示站；删除该仓库会使该旧演示网址失效，但不会影响 Render 的 /claude/。源码、提交历史与当前部署依赖检查通过不代表 GitHub Actions 运行记录等托管元数据已完整迁移；永久删除须待用户最终确认。
+旧 Claude 独立仓库已在 2026-11-26 控制台复核后永久删除。其旧演示站和旧仓库地址已失效。Claude 源码、提交历史与 Render 的 `/claude/` 保留在本仓库和现有服务中。完整记录见 [收尾验收报告](docs/CLOSEOUT-ACCEPTANCE-20261126.md)。

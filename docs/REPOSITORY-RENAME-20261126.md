@@ -55,4 +55,4 @@
 - API 检查未发现 Issues（含关闭）、PR（含关闭）、Releases 或 release assets。Wiki clone 返回 404，未发现可克隆 Wiki，不能声称备份了不可访问的 Wiki 内容。
 - 原仓库 URL、星标及其他站点级元数据不属于代码/提交对象；删除不是改名重定向，也不应依赖恢复窗口来保证可逆。
 
-本次**不归档、不删除** ai-career-coach-claude，等待用户最终明确确认永久删除以及接受旧 Pages/托管历史消失。现有本地备份、Project 和历史对话全部保留。
+本次评估当时不归档、不删除，等待用户最终确认。用户随后在 Render 控制台复核通过后明确同意。`ai-career-coach-claude` 已于 2026-11-26 约 20:03 永久删除，旧仓库与旧 Pages 地址返回 404。Render `/claude/`、统一仓库中的 Claude 源码和 `archive/claude/*` 历史均保留。结果见 [收尾验收报告](CLOSEOUT-ACCEPTANCE-20261126.md)。现有本地备份、Project 和历史对话全部保留。
